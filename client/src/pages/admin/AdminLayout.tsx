@@ -39,7 +39,7 @@ export default function AdminLayout() {
     { to: '/admin/partners', label: 'Partner Network', icon: Handshake },
     { to: '/admin/ledger', label: 'Global Ledger', icon: BookOpenCheck },
     { to: '/admin/comms', label: 'Comms', icon: MessagesSquare },
-    { to: '/admin/telemetry', label: 'Cloud Telemetry', icon: Activity },
+    { to: '/admin/telemetry', label: 'Rental Laptops', icon: Activity },
   ];
 
   return (

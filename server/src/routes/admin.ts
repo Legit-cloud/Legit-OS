@@ -10,6 +10,7 @@ import { awardPoints, settleInvoice } from '../lib/ledger.js';
 import { UPLOAD_DIR } from './finance.js';
 import { expireSessions } from './hub.js';
 import { VEHICLES } from './transit.js';
+import { telemetryDb } from '../lib/telemetryDb.js';
 
 export const adminRouter = Router();
 
@@ -63,6 +64,95 @@ adminRouter.get('/telemetry', async (_req, res) => {
   });
 });
 
+adminRouter.get('/rental-devices', async (req, res) => {
+  const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  
+  let query = 'SELECT * FROM devices';
+  let params: any[] = [];
+  
+  if (search) {
+    query += ' WHERE serial_number ILIKE $1 OR hostname ILIKE $1';
+    params.push(`%${search}%`);
+  }
+  
+  query += ' ORDER BY created_at_utc DESC';
+  
+  try {
+    const { rows: devices } = await telemetryDb.query(query, params);
+    res.json(devices);
+  } catch (error) {
+    console.error('Failed to fetch rental devices', error);
+    res.status(500).json({ error: 'Failed to fetch devices' });
+  }
+});
+
+adminRouter.get('/rental-devices/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throw badRequest('Invalid device ID');
+
+    const deviceRes = await telemetryDb.query('SELECT * FROM devices WHERE id = $1', [id]);
+    if (deviceRes.rows.length === 0) throw notFound('Device');
+    const device = deviceRes.rows[0];
+
+    // Fetch active session if any
+    const sessionRes = await telemetryDb.query(
+      `SELECT ls.*, u.full_name as user_name, u.email as user_email 
+       FROM login_sessions ls 
+       JOIN users u ON ls.user_id = u.id 
+       WHERE ls.device_id = $1 AND ls.logout_time_utc IS NULL 
+       ORDER BY ls.login_time_utc DESC LIMIT 1`,
+      [id]
+    );
+    const activeSession = sessionRes.rows[0] || null;
+
+    let webQuery = 'SELECT * FROM agent_browser_visit_events WHERE device_id = $1';
+    let appQuery = 'SELECT * FROM agent_app_usage_events WHERE device_id = $1';
+    let loginQuery = `SELECT ls.*, u.full_name as user_name, u.email as user_email FROM login_sessions ls JOIN users u ON ls.user_id = u.id WHERE ls.device_id = $1`;
+    
+    let params: any[] = [id];
+    let paramCount = 1;
+    
+    const { start_date, end_date } = req.query;
+    if (typeof start_date === 'string' && start_date) {
+      paramCount++;
+      webQuery += ` AND visit_time_utc >= $${paramCount}`;
+      appQuery += ` AND start_time_utc >= $${paramCount}`;
+      loginQuery += ` AND ls.login_time_utc >= $${paramCount}`;
+      params.push(start_date);
+    }
+    if (typeof end_date === 'string' && end_date) {
+      paramCount++;
+      webQuery += ` AND visit_time_utc <= $${paramCount}`;
+      appQuery += ` AND start_time_utc <= $${paramCount}`;
+      loginQuery += ` AND ls.login_time_utc <= $${paramCount}`;
+      params.push(end_date + ' 23:59:59'); // include the whole day
+    }
+    
+    webQuery += ' ORDER BY visit_time_utc DESC LIMIT 100';
+    appQuery += ' ORDER BY start_time_utc DESC LIMIT 100';
+    loginQuery += ' ORDER BY ls.login_time_utc DESC LIMIT 100';
+
+    // Fetch history
+    const [webRes, appRes, loginRes] = await Promise.all([
+      telemetryDb.query(webQuery, params),
+      telemetryDb.query(appQuery, params),
+      telemetryDb.query(loginQuery, params)
+    ]);
+
+    res.json({ 
+      device, 
+      activeSession,
+      webHistory: webRes.rows,
+      appHistory: appRes.rows,
+      loginHistory: loginRes.rows
+    });
+  } catch (error: any) {
+    console.error('Failed to fetch rental device details', error);
+    res.status(error.status || 500).json({ error: error.message || 'Failed to fetch device details' });
+  }
+});
+
 // ─── User directory ─────────────────────────────────────────────────────────
 
 adminRouter.get('/users', async (req, res) => {
@@ -73,11 +163,11 @@ adminRouter.get('/users', async (req, res) => {
     include: { invoices: { where: { status: { in: ['PENDING', 'AWAITING_REVIEW'] } }, select: { status: true } } },
   });
   res.json(
-    users.map(({ invoices, ...u }) => ({
+    users.map(({ invoices, ...u }: any) => ({
       ...publicUser(u as typeof u & { passwordHash: string }),
-      paymentStatus: invoices.some((i) => i.status === 'AWAITING_REVIEW')
+      paymentStatus: invoices.some((i: any) => i.status === 'AWAITING_REVIEW')
         ? 'AWAITING_REVIEW'
-        : invoices.length
+        : invoices.length 
           ? 'OUTSTANDING'
           : 'CLEAR',
       online: online.has(u.id),
@@ -443,10 +533,10 @@ adminRouter.get('/comms/threads', async (_req, res) => {
     _max: { createdAt: true },
     _count: true,
   });
-  const userIds = groups.map((g) => g.channel.slice('support:'.length));
+  const userIds = groups.map((g: any) => g.channel.slice('support:'.length));
   const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, fullName: true, email: true } });
   const threads = await Promise.all(
-    groups.map(async (g) => {
+    groups.map(async (g: any) => {
       const last = await prisma.chatMessage.findFirst({
         where: { channel: g.channel },
         orderBy: { createdAt: 'desc' },
@@ -454,7 +544,7 @@ adminRouter.get('/comms/threads', async (_req, res) => {
       });
       return {
         channel: g.channel,
-        user: users.find((u) => `support:${u.id}` === g.channel) ?? null,
+        user: users.find((u: any) => `support:${u.id}` === g.channel) ?? null,
         count: g._count,
         lastAt: g._max.createdAt,
         lastMessage: last?.content ?? '',
@@ -471,7 +561,7 @@ adminRouter.post('/comms/broadcast', async (req, res) => {
     .object({ title: z.string().trim().min(2).max(80), body: z.string().trim().min(2).max(500) })
     .parse(req.body);
   const users = await prisma.user.findMany({ where: { status: 'ACTIVE' }, select: { id: true } });
-  await Promise.all(users.map((u) => notify(u.id, title, body)));
+  await Promise.all(users.map((u: any) => notify(u.id, title, body)));
   await log('ADMIN', `${actor(req)} broadcast "${title}" to ${users.length} members`, req.user!.id);
   res.json({ delivered: users.length });
 });

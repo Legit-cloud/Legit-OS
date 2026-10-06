@@ -1,7 +1,10 @@
 {
   "name": "legit-innovation-hub",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "dev": "concurrently -n server,client -c cyan,blue \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w server && npm run build -w client",
@@ -12,5 +15,11 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "esbuild@0.28.2": true,
+    "prisma@6.12.0": true,
+    "@prisma/engines@6.12.0": true
   }
 }

@@ -4,6 +4,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { ZodError } from 'zod';
 import multer from 'multer';
 import { env } from './lib/env.js';
@@ -56,6 +58,17 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: env.clientOrigin } });
+
+if (env.redisUrl) {
+  const pubClient = createClient({ url: env.redisUrl });
+  const subClient = pubClient.duplicate();
+
+  Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('Redis adapter for Socket.io enabled.');
+  }).catch(console.error);
+}
+
 setIo(io);
 setupSocket(io);
 
