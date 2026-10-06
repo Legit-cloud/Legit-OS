@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  PAY_AS_YOU_GO
+  PRO_MONTHLY
+  VIP
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id           String           @id @default(uuid())
+  fullName     String
+  email        String           @unique
+  passwordHash String
+  phone        String?
+  bio          String?
+  role         Role             @default(USER)
+  tier         SubscriptionTier @default(PAY_AS_YOU_GO)
+  status       AccountStatus    @default(ACTIVE)
+  verified     Boolean          @default(false)
+  points       Int              @default(0)
+  streakDays   Int              @default(0)
+  lastActiveAt DateTime?
+  badge        String           @default("New Member")
+  planRenewsAt DateTime?
+  createdAt    DateTime         @default(now())
+
+  payments      PaymentProof[]
+  invoices      Invoice[]
+  bookings      Booking[]
+  loungeOrders  LoungeOrder[]
+  courseAccess  UserCourse[]
+  chatMessages  ChatMessage[]
+  transitRides  TransitRequest[]
+  rsvps         EventRsvp[]
+  notifications Notification[]
+}
+
+// Every charge in the system is an invoice. Approving a payment proof marks
+// its invoice PAID, which applies the invoice's effect (see lib/ledger.ts).
+model Invoice {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        String // COURSE, SUBSCRIPTION, BOOKING, LOUNGE, OTHER
+  refId       String?
+  description String
+  amount      Float
+  status      String         @default("PENDING") // PENDING, AWAITING_REVIEW, PAID, VOID
+  createdAt   DateTime       @default(now())
+  paidAt      DateTime?
+  proofs      PaymentProof[]
+}
+
+model PaymentProof {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceId  String?
+  invoice    Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  amount     Float
+  receiptUrl String
+  note       String?
+  status     String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewNote String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Course {
+  id            String       @id @default(uuid())
+  slug          String       @unique
+  title         String
+  description   String
+  level         String
+  durationWeeks Int
+  fullPrice     Float
+  halfPrice     Float
+  modulesJson   String       @default("[]")
+  enrolledUsers UserCourse[]
+}
+
+model UserCourse {
+  id          String   @id @default(uuid())
+  userId      String
+  courseId    String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  paidAmount  Float
+  isFullyPaid Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+// Bookable / purchasable hub assets: desks, facilities, programs, hardware, lounge menu.
+model CatalogItem {
+  id          String    @id @default(uuid())
+  category    String // DESK, FACILITY, PROGRAM, HARDWARE, LOUNGE
+  name        String
+  description String    @default("")
+  price       Float
+  unit        String // hour, day, month, item
+  available   Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  bookings    Booking[]
+}
+
+model Booking {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      CatalogItem @relation(fields: [itemId], references: [id])
+  quantity  Int
+  amount    Float
+  status    String      @default("PENDING_PAYMENT") // PENDING_PAYMENT, CONFIRMED, ACTIVE, COMPLETED, CANCELLED
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime    @default(now())
+}
+
+model LoungeOrder {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemsJson  String
+  customItem String?
+  notes      String?
+  total      Float
+  status     String   @default("PLACED") // PLACED, PREPARING, READY, DELIVERED, CANCELLED
+  createdAt  DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  channel   String   @default("Global Community") // "Global Community" or "support:<userId>"
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([channel, createdAt])
+}
+
+model Rider {
+  id          String           @id @default(uuid())
+  name        String
+  phone       String
+  vehicleType String // Bike, Keke, Cab
+  plate       String           @default("")
+  available   Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  rides       TransitRequest[]
+}
+
+model TransitRequest {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pickupLocation  String
+  dropoffLocation String   @default("L.E.G.I.T Innovation Hub")
+  vehicleType     String // Bike, Keke, Cab
+  fareEstimate    Float
+  status          String   @default("REQUESTED") // REQUESTED, ASSIGNED, EN_ROUTE, COMPLETED, CANCELLED
+  riderId         String?
+  rider           Rider?   @relation(fields: [riderId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model HubEvent {
+  id          String      @id @default(uuid())
+  kind        String      @default("EVENT") // EVENT, GAME
+  title       String
+  description String
+  location    String      @default("L.E.G.I.T Hub, Ibadan")
+  startsAt    DateTime?
+  capacity    Int         @default(50)
+  externalUrl String?
+  createdAt   DateTime    @default(now())
+  rsvps       EventRsvp[]
+}
+
+model EventRsvp {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  event     HubEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model Partner {
+  id          String   @id @default(uuid())
+  name        String
+  category    String
+  website     String?
+  description String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model TelemetryLog {
+  id        String   @id @default(uuid())
+  level     String // INFO, WARN, SECURITY, ADMIN
+  message   String
+  actorId   String?
+  createdAt DateTime @default(now())
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

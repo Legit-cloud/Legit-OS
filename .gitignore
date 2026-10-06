@@ -1,0 +1,8 @@
+node_modules/
+client/dist/
+server/.env
+server/prisma/*.db
+server/prisma/*.db-journal
+server/uploads/*
+!server/uploads/.gitkeep
+*.log

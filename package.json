@@ -1,0 +1,16 @@
+{
+  "name": "legit-innovation-hub",
+  "private": true,
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,blue \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "start": "npm run start -w server",
+    "db:setup": "npm run db:setup -w server",
+    "db:reset": "npm run db:reset -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

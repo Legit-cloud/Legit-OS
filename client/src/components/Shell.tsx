@@ -1,0 +1,155 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bell, Menu, X, type LucideIcon } from 'lucide-react';
+import { api } from '../lib/api';
+import { timeAgo } from '../lib/format';
+import type { Notification } from '../lib/types';
+import { Logo, ThemeToggle, cn } from './ui';
+
+export interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+  badge?: number;
+}
+
+/** Sidebar + top status bar layout shared by the client terminal and the admin portal. */
+export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem[]; title: string; topRight: ReactNode; footer?: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  useEffect(() => setOpen(false), [location.pathname]);
+
+  const sidebar = (
+    <div className="flex h-full flex-col">
+      <div className="px-5 py-5"><Logo /></div>
+      <p className="px-6 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 scrollbar-thin">
+        {nav.map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            end={n.end}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition',
+                isActive
+                  ? 'bg-gradient-to-r from-cyan-500/15 to-blue-600/10 text-cyan-700 ring-1 ring-cyan-500/30 dark:text-cyan-300'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+              )
+            }
+          >
+            <n.icon className="h-[18px] w-[18px]" />
+            <span className="flex-1">{n.label}</span>
+            {!!n.badge && <span className="rounded-full bg-cyan-500 px-2 text-[11px] font-bold text-white">{n.badge}</span>}
+          </NavLink>
+        ))}
+      </nav>
+      {footer && <div className="border-t border-slate-200 p-3 dark:border-white/10">{footer}</div>}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white/70 backdrop-blur-xl lg:block dark:border-white/10 dark:bg-slate-950/60">
+        {sidebar}
+      </aside>
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
+            <motion.aside
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-white lg:hidden dark:bg-slate-950"
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            >
+              <button className="absolute right-3 top-5 rounded-full p-2" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button>
+              {sidebar}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-[#05070d]/80">
+          <button className="rounded-full p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
+          <span className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-400">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            SYSTEM ONLINE
+          </span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <ThemeToggle />
+            {topRight}
+          </div>
+        </header>
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+export function NotificationBell() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { data } = useQuery({ queryKey: ['notifications'], queryFn: () => api<{ items: Notification[]; unread: number }>('/notifications') });
+  const readAll = useMutation({
+    mutationFn: () => api('/notifications/read-all', { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const toggle = () => {
+    setOpen(!open);
+    if (!open && data?.unread) readAll.mutate();
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={toggle} className="relative rounded-full p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Notifications">
+        <Bell className="h-[18px] w-[18px]" />
+        {!!data?.unread && (
+          <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cyan-500 px-1 text-[10px] font-bold text-white">{data.unread}</span>
+        )}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="glass absolute right-0 top-12 z-40 w-[min(360px,calc(100vw-2rem))] bg-white/95 p-2 shadow-xl dark:bg-slate-900/95"
+          >
+            <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</p>
+            <div className="max-h-96 overflow-y-auto scrollbar-thin">
+              {data?.items.length ? (
+                data.items.map((n) => (
+                  <div key={n.id} className={cn('rounded-2xl px-3 py-2.5', !n.read && 'bg-cyan-500/5')}>
+                    <p className="text-sm font-semibold">{n.title}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{n.body}</p>
+                    <p className="mt-1 text-[11px] text-slate-400">{timeAgo(n.createdAt)}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="px-3 py-6 text-center text-sm text-slate-500">You're all caught up.</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
