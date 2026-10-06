@@ -82,8 +82,6 @@ client/src/
 ## Things to configure before launch
 
 - Prices that were not in the brief are **placeholders**: hot desk, day pass, CC HUB/GATEWAY, J.B.C,
-  hardware rentals, Munchkins and soft drinks. Edit them in **Admin → Hub Assets**.
+  hardware rentals, Munchkins and soft drinks. Edit them in **Admin → Hub Assets**. 
 - Transit fares (`server/src/routes/transit.ts`) are flat estimates: Bike ₦1,500, Keke ₦2,000, Cab ₦4,500.
 - The Scrabble launcher URL is a placeholder. Change it in **Admin → Events & Games**.
-- Set a strong `JWT_SECRET`. For multi-instance deployments, move from SQLite to PostgreSQL
-  (change the Prisma `provider`) and add the Socket.io Redis adapter.

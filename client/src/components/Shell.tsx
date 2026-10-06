@@ -19,41 +19,46 @@ export interface NavItem {
 /** Sidebar + top status bar layout shared by the client terminal and the admin portal. */
 export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem[]; title: string; topRight: ReactNode; footer?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   useEffect(() => setOpen(false), [location.pathname]);
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="px-5 py-5"><Logo /></div>
-      <p className="px-6 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>
+      <div className={cn('flex items-center px-5 py-5', collapsed ? 'justify-center' : '')}>
+        <Logo compact={collapsed} />
+      </div>
+      {!collapsed && <p className="px-6 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 scrollbar-thin">
         {nav.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
             end={n.end}
+            title={collapsed ? n.label : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition',
+                'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition',
+                collapsed ? 'justify-center px-0 w-10 mx-auto' : 'px-3.5',
                 isActive
                   ? 'bg-gradient-to-r from-cyan-500/15 to-blue-600/10 text-cyan-700 ring-1 ring-cyan-500/30 dark:text-cyan-300'
                   : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
               )
             }
           >
-            <n.icon className="h-[18px] w-[18px]" />
-            <span className="flex-1">{n.label}</span>
-            {!!n.badge && <span className="rounded-full bg-cyan-500 px-2 text-[11px] font-bold text-white">{n.badge}</span>}
+            <n.icon className="h-[18px] w-[18px] shrink-0" />
+            {!collapsed && <span className="flex-1 truncate">{n.label}</span>}
+            {!collapsed && !!n.badge && <span className="rounded-full bg-cyan-500 px-2 text-[11px] font-bold text-white">{n.badge}</span>}
           </NavLink>
         ))}
       </nav>
-      {footer && <div className="border-t border-slate-200 p-3 dark:border-white/10">{footer}</div>}
+      {footer && !collapsed && <div className="border-t border-slate-200 p-3 dark:border-white/10">{footer}</div>}
     </div>
   );
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white/70 backdrop-blur-xl lg:block dark:border-white/10 dark:bg-slate-950/60">
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r border-slate-200 bg-white/70 backdrop-blur-xl lg:block transition-all duration-300 dark:border-white/10 dark:bg-slate-950/60', collapsed ? 'w-20' : 'w-64')}>
         {sidebar}
       </aside>
       <AnimatePresence>
@@ -74,9 +79,12 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
         )}
       </AnimatePresence>
 
-      <div className="lg:pl-64">
+      <div className={cn('transition-all duration-300', collapsed ? 'lg:pl-20' : 'lg:pl-64')}>
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-[#05070d]/80">
           <button className="rounded-full p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
+          <button className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200/60 lg:block dark:text-slate-400 dark:hover:bg-white/10" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
+            <Menu className="h-5 w-5" />
+          </button>
           <span className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-400">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
