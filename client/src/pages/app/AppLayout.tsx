@@ -30,10 +30,10 @@ function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }
         <>
           <motion.div className="fixed inset-0 z-40 bg-slate-950/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.aside
-            className="fixed inset-y-0 right-0 z-50 flex w-[min(360px,100vw)] flex-col bg-white p-6 shadow-2xl dark:bg-slate-950"
-            initial={{ x: 380 }}
-            animate={{ x: 0 }}
-            exit={{ x: 380 }}
+            className="fixed right-4 top-20 z-50 flex h-fit max-h-[calc(100vh-6rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl dark:border-white/10 dark:bg-[#05070d]"
+            initial={{ opacity: 0, x: 20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
             <div className="flex items-center justify-between">
@@ -52,8 +52,8 @@ function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }
               </div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="glass p-4"><Trophy className="h-5 w-5 text-amber-500" /><p className="mt-2 font-display text-2xl font-bold">{user.points}</p><p className="text-xs text-slate-500">Hub points</p></div>
-              <div className="glass p-4"><Flame className="h-5 w-5 text-orange-500" /><p className="mt-2 font-display text-2xl font-bold">{user.streakDays}d</p><p className="text-xs text-slate-500">Active streak</p></div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900"><Trophy className="h-5 w-5 text-amber-500" /><p className="mt-2 font-display text-2xl font-bold">{user.points}</p><p className="text-xs text-slate-500">Hub points</p></div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900"><Flame className="h-5 w-5 text-orange-500" /><p className="mt-2 font-display text-2xl font-bold">{user.streakDays}d</p><p className="text-xs text-slate-500">Active streak</p></div>
             </div>
             <div className="mt-6 space-y-2">
               <Link to="/app/profile" onClick={onClose}><Button variant="outline" className="w-full">View full profile</Button></Link>
@@ -86,10 +86,10 @@ export default function AppLayout() {
               <span className="block text-[11px] leading-tight text-slate-500">{tierLabel(user.tier)}</span>
             </span>
           </button>
-          <ProfileDrawer open={drawer} onClose={() => setDrawer(false)} />
         </>
       }
     >
+      <ProfileDrawer open={drawer} onClose={() => setDrawer(false)} />
       <Outlet />
     </Shell>
   );
