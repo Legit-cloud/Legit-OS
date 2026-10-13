@@ -6,7 +6,7 @@ import { Bell, Menu, X, type LucideIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { timeAgo } from '../lib/format';
 import type { Notification } from '../lib/types';
-import { Logo, ThemeToggle, cn } from './ui';
+import { Logo, cn } from './ui';
 
 export interface NavItem {
   to: string;
@@ -93,7 +93,6 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
             SYSTEM ONLINE
           </span>
           <div className="ml-auto flex items-center gap-1.5">
-            <ThemeToggle />
             {topRight}
           </div>
         </header>
