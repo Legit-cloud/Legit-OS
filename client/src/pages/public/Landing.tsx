@@ -4,7 +4,7 @@ import { animate, AnimatePresence, motion, useInView } from 'framer-motion';
 import {
   ArrowRight, ChevronDown, Mail, MapPin, Menu, Phone, Quote, Sparkles, Terminal, X, ArrowUpRight, CheckCircle2,
 } from 'lucide-react';
-import { Button, Logo, Tabs, ThemeToggle, cn } from '../../components/ui';
+import { Button, Logo, Tabs, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../store/auth';
 import {
@@ -34,7 +34,6 @@ function Header() {
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          <ThemeToggle />
           {!user && (
             <Link to="/login" className="hidden rounded-full px-3 py-2 text-sm font-semibold text-slate-600 hover:text-cyan-600 sm:block dark:text-slate-300">
               Sign in
