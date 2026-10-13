@@ -160,15 +160,17 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   );
 }
 
-export function Logo({ compact }: { compact?: boolean }) {
+export function Logo({ compact, className }: { compact?: boolean; className?: string }) {
+  if (compact) {
+    return (
+      <span className="inline-flex items-center justify-center shrink-0">
+        <img src="/logo-icon.png" alt="L.E.G.I.T Innovation Hub" className={cn('h-8 w-8 object-contain', className)} />
+      </span>
+    );
+  }
   return (
-    <span className="flex items-center gap-2.5">
-      <img src="/logo.svg" alt="" className="h-8 w-8" />
-      {!compact && (
-        <span className="font-display text-base font-bold leading-none tracking-tight">
-          L.E.G.I.T<span className="block text-[10px] font-medium tracking-[0.2em] text-slate-500 dark:text-slate-400">INNOVATION HUB</span>
-        </span>
-      )}
+    <span className="inline-flex items-center shrink-0">
+      <img src="/logo.png" alt="L.E.G.I.T Innovation Hub" className={cn('h-10 w-auto object-contain', className)} />
     </span>
   );
 }
