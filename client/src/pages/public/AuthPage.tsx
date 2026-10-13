@@ -2,7 +2,7 @@ import { useState, type FormEvent, useRef, useEffect } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Camera, X, Eye, EyeOff, Upload, Check } from 'lucide-react';
-import { Button, Field, Logo, ThemeToggle } from '../../components/ui';
+import { Button, Field, Logo } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import type { User } from '../../lib/types';
 import { useAuth } from '../../store/auth';
@@ -125,7 +125,6 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         <Link to="/" className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-cyan-600 dark:text-slate-300">
           <ArrowLeft className="h-4 w-4" /> Back to site
         </Link>
-        <ThemeToggle />
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass relative w-full max-w-md p-8">
