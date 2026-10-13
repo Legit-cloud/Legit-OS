@@ -1,8 +1,7 @@
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import clsx from 'clsx';
-import { Loader2, Moon, Sun, X, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
-import { useTheme } from '../store/theme';
+import { Loader2, X, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 import { useToasts } from '../store/toast';
 import { humanize } from '../lib/format';
 
@@ -158,19 +157,6 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, toggle } = useTheme();
-  return (
-    <button
-      onClick={toggle}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      className={cn('rounded-full p-2 text-slate-600 transition hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/10', className)}
-    >
-      {theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-    </button>
   );
 }
 
