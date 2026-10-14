@@ -5,7 +5,7 @@ import { ArrowRight, Clock, Flame, GraduationCap, Receipt, Timer, Trophy, Buildi
 import { Badge, Button, Card, PageHeader, StatCard } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { TZ, naira } from '../../lib/format';
-import type { Booking, Course, Invoice } from '../../lib/types';
+import type { Booking, Course, Invoice, Notification } from '../../lib/types';
 import { useAuth } from '../../store/auth';
 import { toast } from '../../store/toast';
 
@@ -147,15 +147,43 @@ export default function Overview() {
   const bookings = useQuery({ queryKey: ['bookings'], queryFn: () => api<Booking[]>('/bookings') });
   const finance = useQuery({ queryKey: ['finance'], queryFn: () => api<{ invoices: Invoice[] }>('/finance') });
   const courses = useQuery({ queryKey: ['courses'], queryFn: () => api<Course[]>('/courses') });
+  const notifQuery = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api<{ items: Notification[]; unread: number }>('/notifications'),
+    refetchInterval: 15_000,
+  });
 
   const outstanding = finance.data?.invoices.filter((i) => i.status === 'PENDING') ?? [];
   const enrolled = courses.data?.filter((c) => c.hasAccess) ?? [];
+  const unreadNotifs = notifQuery.data?.unread ?? 0;
   const hour = Number(new Date().toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }));
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <>
       <PageHeader eyebrow="Overview" title={`${greeting}, ${user.fullName.split(' ')[0]}`} subtitle="Your hub at a glance — sessions, payments and learning." />
+
+      {unreadNotifs > 0 && (
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent p-4 sm:px-5 sm:py-3.5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-cyan-500" />
+            </span>
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              You have <strong className="text-cyan-600 dark:text-cyan-400">{unreadNotifs} unread notice{unreadNotifs === 1 ? '' : 's'}</strong> from administration
+            </span>
+          </div>
+          <Link
+            to="/app/notifications"
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-cyan-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-cyan-500/25 hover:brightness-110"
+          >
+            <span>Check it out</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <TimeSync />
         <WorkspaceTimer bookings={bookings.data ?? []} />
@@ -170,9 +198,9 @@ export default function Overview() {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { to: '/app/infra', icon: Building2, title: 'Book a space', body: 'Desks, studio, offices & lounge orders' },
+          { to: '/app/infra', icon: Building2, title: 'Book a space', body: 'Desks, facilities & workstations (Lounge coming soon)' },
           { to: '/app/academy', icon: GraduationCap, title: 'Academy', body: 'Enroll in a course or enter your classroom' },
-          { to: '/app/transit', icon: Bike, title: 'Request a ride', body: 'Bike, Keke or Cab to the hub' },
+          { to: '/app/transit', icon: Bike, title: 'Transit Dispatch', body: 'Bike, Keke or Cab service · Coming Soon' },
           { to: '/app/network', icon: Users, title: 'Community', body: 'Chat with members and hub support' },
         ].map((a) => (
           <Link key={a.to} to={a.to} className="glass group flex items-start gap-4 p-5 transition hover:-translate-y-0.5 hover:border-cyan-500/40">

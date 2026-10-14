@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, Field, Loading, Modal, PageHeader, StatusBadge, Tabs } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { formatDateTime, naira } from '../../lib/format';
+import { useSocketEvent } from '../../lib/socket';
 import type { Booking, CatalogItem, Category } from '../../lib/types';
 import { toast } from '../../store/toast';
 
@@ -60,6 +61,12 @@ export default function HubAssets() {
   const qc = useQueryClient();
   const [cat, setCat] = useState<Category>('FACILITY');
   const [editing, setEditing] = useState<Draft | null>(null);
+
+  useSocketEvent('catalog:changed', () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'assets'] });
+    qc.invalidateQueries({ queryKey: ['catalog'] });
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'assets'],
     queryFn: () => api<{ items: CatalogItem[]; bookings: AdminBooking[] }>('/admin/assets'),
@@ -84,7 +91,14 @@ export default function HubAssets() {
         subtitle="Set prices and availability for everything members can book or order."
         actions={<Button onClick={() => setEditing({ category: cat, name: '', description: '', price: 0, unit: DEFAULT_UNIT[cat], available: true })}><Plus className="h-4 w-4" /> Add asset</Button>}
       />
-      <Tabs value={cat} onChange={setCat} options={CATEGORIES.map((c) => ({ value: c, label: c.charAt(0) + c.slice(1).toLowerCase() }))} />
+      <Tabs
+        value={cat}
+        onChange={setCat}
+        options={CATEGORIES.map((c) => ({
+          value: c,
+          label: c === 'HARDWARE' ? 'Hardware Rentals' : c.charAt(0) + c.slice(1).toLowerCase(),
+        }))}
+      />
 
       <Card className="mt-4 overflow-x-auto p-0 sm:p-0">
         <table className="w-full min-w-[640px] text-left text-sm">

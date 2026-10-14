@@ -5,12 +5,14 @@ import { prisma } from '../lib/prisma.js';
 import { publicUser } from '../lib/auth.js';
 import { badRequest, notFound } from '../lib/http.js';
 import { log } from '../lib/telemetry.js';
-import { disconnectUser, emitToUser, notify, online, socketCount } from '../lib/realtime.js';
+import { disconnectUser, emitAll, emitToUser, emitToAdmins, notify, online, socketCount } from '../lib/realtime.js';
 import { awardPoints, settleInvoice } from '../lib/ledger.js';
 import { UPLOAD_DIR } from './finance.js';
 import { expireSessions } from './hub.js';
 import { VEHICLES } from './transit.js';
 import { telemetryDb } from '../lib/telemetryDb.js';
+import { saveBroadcast, getBroadcastHistory, deleteBroadcast, type BroadcastEntry, type BroadcastType, type BroadcastSeverity, type BroadcastTarget } from '../lib/broadcasts.js';
+import crypto from 'node:crypto';
 
 export const adminRouter = Router();
 
@@ -234,7 +236,7 @@ adminRouter.patch('/users/:id', async (req, res) => {
 // ─── Action queue: payment proofs & lounge orders ──────────────────────────
 
 adminRouter.get('/queue', async (_req, res) => {
-  const [proofs, orders, reviewed] = await Promise.all([
+  const [proofs, orders, reviewed, bookings, enrollments, rides] = await Promise.all([
     prisma.paymentProof.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
@@ -251,9 +253,42 @@ adminRouter.get('/queue', async (_req, res) => {
       take: 15,
       include: { user: { select: { fullName: true } }, invoice: { select: { description: true } } },
     }),
+    prisma.booking.findMany({
+      where: { status: { in: ['PENDING_PAYMENT', 'CONFIRMED', 'ACTIVE'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      include: {
+        item: { select: { id: true, name: true, category: true, unit: true, price: true } },
+        user: { select: { id: true, fullName: true, email: true } },
+      },
+    }),
+    prisma.userCourse.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        course: { select: { id: true, title: true, fullPrice: true, level: true } },
+      },
+    }),
+    prisma.transitRequest.findMany({
+      where: { status: { in: ['REQUESTED', 'ASSIGNED', 'EN_ROUTE'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        user: { select: { id: true, fullName: true, phone: true } },
+        rider: { select: { id: true, name: true, phone: true } },
+      },
+    }),
   ]);
   const strip = <T extends { receiptUrl: string }>({ receiptUrl, ...p }: T) => ({ ...p, receiptType: path.extname(receiptUrl) });
-  res.json({ proofs: proofs.map(strip), orders, reviewed: reviewed.map(strip) });
+  res.json({
+    proofs: proofs.map(strip),
+    orders,
+    reviewed: reviewed.map(strip),
+    bookings,
+    enrollments,
+    rides,
+  });
 });
 
 adminRouter.get('/proofs/:id/receipt', async (req, res) => {
@@ -340,12 +375,14 @@ adminRouter.get('/assets', async (_req, res) => {
 adminRouter.post('/assets', async (req, res) => {
   const item = await prisma.catalogItem.create({ data: assetSchema.parse(req.body) });
   await log('ADMIN', `${actor(req)} added asset ${item.name} (₦${item.price}/${item.unit})`, req.user!.id);
+  emitAll('catalog:changed', { action: 'create', item });
   res.status(201).json(item);
 });
 
 adminRouter.patch('/assets/:id', async (req, res) => {
   const item = await prisma.catalogItem.update({ where: { id: req.params.id }, data: assetSchema.partial().parse(req.body) });
   await log('ADMIN', `${actor(req)} updated asset ${item.name}`, req.user!.id);
+  emitAll('catalog:changed', { action: 'update', item });
   res.json(item);
 });
 
@@ -356,7 +393,88 @@ adminRouter.delete('/assets/:id', async (req, res) => {
     ? await prisma.catalogItem.update({ where: { id: req.params.id }, data: { available: false } })
     : await prisma.catalogItem.delete({ where: { id: req.params.id } });
   await log('ADMIN', `${actor(req)} ${used ? 'retired' : 'deleted'} asset ${item.name}`, req.user!.id);
+  emitAll('catalog:changed', { action: 'delete', id: req.params.id, retired: Boolean(used) });
   res.json({ retired: Boolean(used) });
+});
+
+adminRouter.patch('/bookings/:id', async (req, res) => {
+  const { status } = z
+    .object({ status: z.enum(['PENDING_PAYMENT', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']) })
+    .parse(req.body);
+  const booking = await prisma.booking.update({
+    where: { id: req.params.id },
+    data: { status },
+    include: { item: true, user: true },
+  });
+  await log('ADMIN', `${actor(req)} marked booking ${booking.item.name} (${booking.user.fullName}) as ${status}`, req.user!.id);
+  await notify(booking.userId, 'Booking update', `Your booking for ${booking.item.name} is now ${status.toLowerCase().replace('_', ' ')}.`);
+  emitToUser(booking.userId, 'bookings:changed', null);
+  emitToAdmins('queue:changed', null);
+  res.json(booking);
+});
+
+// ─── Academy courses & pricing ──────────────────────────────────────────────
+
+const courseSchema = z.object({
+  title: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(1000).default(''),
+  level: z.string().trim().default('Beginner'),
+  durationWeeks: z.coerce.number().int().min(1).max(52).default(8),
+  fullPrice: z.coerce.number().min(0).max(100_000_000),
+  halfPrice: z.coerce.number().min(0).max(100_000_000).optional(),
+  slug: z.string().trim().optional(),
+});
+
+adminRouter.get('/courses', async (_req, res) => {
+  const courses = await prisma.course.findMany({
+    orderBy: { fullPrice: 'desc' },
+    include: {
+      _count: { select: { enrolledUsers: true } },
+    },
+  });
+  res.json(courses);
+});
+
+adminRouter.post('/courses', async (req, res) => {
+  const data = courseSchema.parse(req.body);
+  const slug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const halfPrice = data.halfPrice !== undefined ? data.halfPrice : Math.round(data.fullPrice / 2);
+  const course = await prisma.course.create({
+    data: {
+      ...data,
+      slug,
+      halfPrice,
+      modulesJson: '[]',
+    },
+  });
+  await log('ADMIN', `${actor(req)} created course ${course.title} (₦${course.fullPrice.toLocaleString()})`, req.user!.id);
+  emitAll('courses:changed', { action: 'create', course });
+  res.status(201).json(course);
+});
+
+adminRouter.patch('/courses/:id', async (req, res) => {
+  const parsed = courseSchema.partial().parse(req.body);
+  if (parsed.fullPrice !== undefined && parsed.halfPrice === undefined) {
+    parsed.halfPrice = Math.round(parsed.fullPrice / 2);
+  }
+  const course = await prisma.course.update({
+    where: { id: req.params.id },
+    data: parsed,
+  });
+  await log('ADMIN', `${actor(req)} updated course ${course.title} (₦${course.fullPrice.toLocaleString()})`, req.user!.id);
+  emitAll('courses:changed', { action: 'update', course });
+  res.json(course);
+});
+
+adminRouter.delete('/courses/:id', async (req, res) => {
+  const enrolled = await prisma.userCourse.count({ where: { courseId: req.params.id } });
+  if (enrolled > 0) {
+    throw badRequest('Cannot delete a course that has enrolled members');
+  }
+  const course = await prisma.course.delete({ where: { id: req.params.id } });
+  await log('ADMIN', `${actor(req)} deleted course ${course.title}`, req.user!.id);
+  emitAll('courses:changed', { action: 'delete', id: req.params.id });
+  res.json({ deleted: true });
 });
 
 // ─── Riders & transit dispatch ──────────────────────────────────────────────
@@ -556,12 +674,129 @@ adminRouter.get('/comms/threads', async (_req, res) => {
   res.json(threads);
 });
 
-adminRouter.post('/comms/broadcast', async (req, res) => {
-  const { title, body } = z
-    .object({ title: z.string().trim().min(2).max(80), body: z.string().trim().min(2).max(500) })
-    .parse(req.body);
-  const users = await prisma.user.findMany({ where: { status: 'ACTIVE' }, select: { id: true } });
-  await Promise.all(users.map((u: any) => notify(u.id, title, body)));
-  await log('ADMIN', `${actor(req)} broadcast "${title}" to ${users.length} members`, req.user!.id);
-  res.json({ delivered: users.length });
+adminRouter.get('/comms/broadcast/history', (_req, res) => {
+  res.json(getBroadcastHistory());
 });
+
+adminRouter.post('/comms/broadcast', async (req, res) => {
+  const schema = z.object({
+    title: z.string().trim().min(2).max(100),
+    body: z.string().trim().min(2).max(1000),
+    type: z.enum(['POPUP', 'NOTIFICATION', 'BANNER', 'COMBO']).default('NOTIFICATION'),
+    target: z.enum(['ALL', 'TIER', 'USER']).default('ALL'),
+    targetUserId: z.string().optional(),
+    tier: z.enum(['PAY_AS_YOU_GO', 'PRO_MONTHLY', 'VIP']).optional(),
+    severity: z.enum(['INFO', 'SUCCESS', 'WARNING', 'URGENT']).default('INFO'),
+    actionUrl: z.string().trim().max(200).optional(),
+    actionLabel: z.string().trim().max(40).optional(),
+  });
+
+  const parsed = schema.parse(req.body);
+
+  // Resolve target audience
+  let recipients: { id: string; fullName: string }[] = [];
+  if (parsed.target === 'USER') {
+    if (!parsed.targetUserId) {
+      throw badRequest('targetUserId is required when target is USER');
+    }
+    const targetUser = await prisma.user.findUnique({
+      where: { id: parsed.targetUserId },
+      select: { id: true, fullName: true },
+    });
+    if (!targetUser) throw notFound('Target user');
+    recipients = [targetUser];
+  } else if (parsed.target === 'TIER') {
+    if (!parsed.tier) {
+      throw badRequest('tier is required when target is TIER');
+    }
+    recipients = await prisma.user.findMany({
+      where: { status: 'ACTIVE', tier: parsed.tier as any },
+      select: { id: true, fullName: true },
+    });
+  } else {
+    // ALL active members
+    recipients = await prisma.user.findMany({
+      where: { status: 'ACTIVE' },
+      select: { id: true, fullName: true },
+    });
+  }
+
+  const broadcastEntry: BroadcastEntry = {
+    id: crypto.randomUUID(),
+    type: parsed.type as BroadcastType,
+    title: parsed.title,
+    body: parsed.body,
+    target: parsed.target as BroadcastTarget,
+    targetUserId: parsed.targetUserId,
+    targetUserName: parsed.target === 'USER' && recipients[0] ? recipients[0].fullName : undefined,
+    tier: parsed.tier,
+    severity: parsed.severity as BroadcastSeverity,
+    actionUrl: parsed.actionUrl || undefined,
+    actionLabel: parsed.actionLabel || undefined,
+    senderId: req.user!.id,
+    senderName: actor(req),
+    deliveredCount: recipients.length,
+    createdAt: new Date().toISOString(),
+  };
+
+  saveBroadcast(broadcastEntry);
+
+  // Permanently record in user notifications so offline and online members always have it in their notifications log
+  await Promise.all(recipients.map((u) => notify(u.id, parsed.title, parsed.body)));
+
+  // Deliver real-time popup if requested
+  if (parsed.type === 'POPUP' || parsed.type === 'COMBO') {
+    if (parsed.target === 'ALL') {
+      emitAll('broadcast:popup', broadcastEntry);
+    } else {
+      for (const u of recipients) {
+        emitToUser(u.id, 'broadcast:popup', broadcastEntry);
+      }
+    }
+  }
+
+  // Deliver real-time top banner if requested
+  if (parsed.type === 'BANNER') {
+    if (parsed.target === 'ALL') {
+      emitAll('broadcast:banner', broadcastEntry);
+    } else {
+      for (const u of recipients) {
+        emitToUser(u.id, 'broadcast:banner', broadcastEntry);
+      }
+    }
+  }
+
+  await log(
+    'ADMIN',
+    `${actor(req)} dispatched ${parsed.type} broadcast "${parsed.title}" [${parsed.severity}] to ${recipients.length} members`,
+    req.user!.id,
+  );
+
+  res.json({ delivered: recipients.length, broadcast: broadcastEntry });
+});
+
+adminRouter.delete('/comms/broadcast/:id', async (req, res) => {
+  const removed = deleteBroadcast(req.params.id);
+  if (!removed) throw notFound('Broadcast');
+
+  // Purge any notification records delivered to members for this broadcast
+  const deletedNotifs = await prisma.notification.deleteMany({
+    where: {
+      title: removed.title,
+      body: removed.body,
+    },
+  });
+
+  // Notify all online clients that this broadcast was recalled
+  emitAll('broadcast:recalled', { id: removed.id, title: removed.title });
+
+  await log(
+    'ADMIN',
+    `${actor(req)} recalled/deleted broadcast "${removed.title}" (purged ${deletedNotifs.count} member notification records)`,
+    req.user!.id,
+  );
+
+  res.json({ ok: true, deleted: true, removedCount: deletedNotifs.count });
+});
+
+

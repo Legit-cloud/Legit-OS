@@ -14,25 +14,37 @@ const Events = lazy(() => import('./pages/app/Events'));
 const Transit = lazy(() => import('./pages/app/Transit'));
 const Finance = lazy(() => import('./pages/app/Finance'));
 const Network = lazy(() => import('./pages/app/Network'));
+const Notifications = lazy(() => import('./pages/app/Notifications'));
 const Profile = lazy(() => import('./pages/app/Profile'));
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'));
 const ActionQueue = lazy(() => import('./pages/admin/ActionQueue'));
+const HardwareRentals = lazy(() => import('./pages/admin/HardwareRentals'));
 const HubAssets = lazy(() => import('./pages/admin/HubAssets'));
+const AdminCourses = lazy(() => import('./pages/admin/AdminCourses'));
 const HubRiders = lazy(() => import('./pages/admin/HubRiders'));
 const AdminEvents = lazy(() => import('./pages/admin/AdminEvents'));
 const UserDirectory = lazy(() => import('./pages/admin/UserDirectory'));
 const Partners = lazy(() => import('./pages/admin/Partners'));
 const Ledger = lazy(() => import('./pages/admin/Ledger'));
 const Comms = lazy(() => import('./pages/admin/Comms'));
+const BroadcastCenter = lazy(() => import('./pages/admin/BroadcastCenter'));
 const Telemetry = lazy(() => import('./pages/admin/Telemetry'));
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
 
 function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode }) {
   const { token, user } = useAuth();
   const location = useLocation();
-  if (!token || !user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
-  if (admin && user.role !== 'ADMIN') return <Navigate to="/app" replace />;
+  if (!token || !user) {
+    if (admin) {
+      const isRoot = location.pathname === '/admin' || location.pathname === '/admin/';
+      const target = isRoot ? '/admin/login' : `/admin/login?next=${encodeURIComponent(location.pathname)}`;
+      return <Navigate to={target} replace />;
+    }
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+  if (admin && user.role !== 'ADMIN') return <Navigate to="/admin/login?error=unauthorized" replace />;
   return <>{children}</>;
 }
 
@@ -55,6 +67,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
 
         <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route index element={<Overview />} />
@@ -65,19 +78,23 @@ export default function App() {
           <Route path="transit" element={<Transit />} />
           <Route path="finance" element={<Finance />} />
           <Route path="network" element={<Network />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 
         <Route path="/admin" element={<RequireAuth admin><AdminLayout /></RequireAuth>}>
           <Route index element={<AdminOverview />} />
           <Route path="queue" element={<ActionQueue />} />
+          <Route path="hardware" element={<HardwareRentals />} />
           <Route path="assets" element={<HubAssets />} />
+          <Route path="courses" element={<AdminCourses />} />
           <Route path="riders" element={<HubRiders />} />
           <Route path="events" element={<AdminEvents />} />
           <Route path="users" element={<UserDirectory />} />
           <Route path="partners" element={<Partners />} />
           <Route path="ledger" element={<Ledger />} />
           <Route path="comms" element={<Comms />} />
+          <Route path="broadcast" element={<BroadcastCenter />} />
           <Route path="telemetry" element={<Telemetry />} />
         </Route>
 

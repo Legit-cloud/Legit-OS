@@ -2,24 +2,17 @@ import { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  LayoutDashboard, Building2, GraduationCap, CalendarDays, Bike, Wallet, Users, UserCircle2, LogOut, Flame, Trophy, ShieldCheck, X,
+  LayoutDashboard, Building2, GraduationCap, CalendarDays, Bike, Wallet, Users, UserCircle2, LogOut, Flame, Trophy, ShieldCheck, X, Bell,
 } from 'lucide-react';
 import { Shell, NotificationBell, type NavItem } from '../../components/Shell';
 import { Avatar, Badge, Button } from '../../components/ui';
 import { useLogout, useSessionSync } from '../../components/session';
+import { BroadcastReceiver } from '../../components/BroadcastReceiver';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api';
 import { useAuth } from '../../store/auth';
 import { tierLabel } from '../../lib/format';
-
-const NAV: NavItem[] = [
-  { to: '/app', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/app/infra', label: 'Infra', icon: Building2 },
-  { to: '/app/academy', label: 'Academy', icon: GraduationCap },
-  { to: '/app/events', label: 'Events & Sync', icon: CalendarDays },
-  { to: '/app/transit', label: 'Transit Hub', icon: Bike },
-  { to: '/app/finance', label: 'Finance & Logs', icon: Wallet },
-  { to: '/app/network', label: 'Network', icon: Users },
-  { to: '/app/profile', label: 'Profile', icon: UserCircle2 },
-];
+import type { Notification } from '../../lib/types';
 
 function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const user = useAuth((s) => s.user)!;
@@ -72,12 +65,47 @@ export default function AppLayout() {
   const user = useAuth((s) => s.user)!;
   const [drawer, setDrawer] = useState(false);
 
+  const notifQuery = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api<{ items: Notification[]; unread: number }>('/notifications'),
+    refetchInterval: 15_000,
+  });
+
+  const unreadCount = notifQuery.data?.unread ?? 0;
+
+  const nav: NavItem[] = [
+    { to: '/app', label: 'Overview', icon: LayoutDashboard, end: true },
+    { to: '/app/infra', label: 'Infra', icon: Building2 },
+    { to: '/app/academy', label: 'Academy', icon: GraduationCap },
+    { to: '/app/events', label: 'Events & Sync', icon: CalendarDays },
+    { to: '/app/transit', label: 'Transit Hub', icon: Bike, soon: true },
+    { to: '/app/finance', label: 'Finance & Logs', icon: Wallet },
+    { to: '/app/network', label: 'Network', icon: Users },
+    { to: '/app/notifications', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+    { to: '/app/profile', label: 'Profile', icon: UserCircle2 },
+  ];
+
   return (
     <Shell
-      nav={NAV}
+      nav={nav}
       title="L.E.G.I.T OS"
+      footer={
+        user.role === 'ADMIN' ? (
+          <Link to="/admin" className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-white/5 font-semibold">
+            <ShieldCheck className="h-4 w-4" /> Switch to Admin Center
+          </Link>
+        ) : undefined
+      }
       topRight={
         <>
+          {user.role === 'ADMIN' && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-cyan-500/20 hover:brightness-110"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Admin Center
+            </Link>
+          )}
           <NotificationBell />
           <button onClick={() => setDrawer(true)} className="ml-1 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-200/60 dark:hover:bg-white/10" aria-label="Open profile">
             <Avatar name={user.fullName} size="sm" />
@@ -89,6 +117,7 @@ export default function AppLayout() {
         </>
       }
     >
+      <BroadcastReceiver />
       <ProfileDrawer open={drawer} onClose={() => setDrawer(false)} />
       <Outlet />
     </Shell>

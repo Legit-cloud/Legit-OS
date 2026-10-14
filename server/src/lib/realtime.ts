@@ -20,6 +20,10 @@ export function emitToChannel(channel: string, event: string, payload: unknown) 
   io?.to(`chan:${channel}`).emit(event, payload);
 }
 
+export function emitAll(event: string, payload?: unknown) {
+  io?.emit(event, payload);
+}
+
 /** Kicks every live socket of a user (used when an account is suspended or banned). */
 export function disconnectUser(userId: string) {
   io?.to(`user:${userId}`).emit('force-logout');

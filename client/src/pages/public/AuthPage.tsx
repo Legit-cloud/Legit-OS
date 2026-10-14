@@ -63,6 +63,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     return next ?? (u.role === 'ADMIN' ? '/admin' : '/app');
   };
 
+  const nextParam = params.get('next');
+  if (mode === 'login' && nextParam && nextParam.startsWith('/admin')) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
   if (token && user) return <Navigate to={destination(user)} replace />;
 
   async function submit(e: FormEvent) {

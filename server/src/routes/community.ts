@@ -5,6 +5,7 @@ import { HttpError, notFound } from '../lib/http.js';
 import { resolveChannel } from '../lib/channels.js';
 import { online } from '../lib/realtime.js';
 import { publicUser } from '../lib/auth.js';
+import { getActiveBroadcastsForUser, getAllBroadcastsForUser, acknowledgeBroadcast } from '../lib/broadcasts.js';
 
 export const communityRouter = Router();
 
@@ -59,15 +60,46 @@ communityRouter.get('/network/messages', async (req, res) => {
 });
 
 communityRouter.get('/notifications', async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 100, 200);
   const [items, unread] = await Promise.all([
-    prisma.notification.findMany({ where: { userId: req.user!.id }, orderBy: { createdAt: 'desc' }, take: 30 }),
+    prisma.notification.findMany({
+      where: { userId: req.user!.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }),
     prisma.notification.count({ where: { userId: req.user!.id, read: false } }),
   ]);
   res.json({ items, unread });
 });
 
+communityRouter.patch('/notifications/:id/read', async (req, res) => {
+  await prisma.notification.updateMany({
+    where: { id: req.params.id, userId: req.user!.id },
+    data: { read: true },
+  });
+  res.json({ ok: true });
+});
+
 communityRouter.post('/notifications/read-all', async (req, res) => {
   await prisma.notification.updateMany({ where: { userId: req.user!.id, read: false }, data: { read: true } });
+  res.json({ ok: true });
+});
+
+// Active unacknowledged broadcasts for user (popups/banners for offline/reconnecting members)
+communityRouter.get('/comms/active', async (req, res) => {
+  const active = getActiveBroadcastsForUser(req.user!.id, req.user!.tier);
+  res.json(active);
+});
+
+// All broadcasts targeted to this user (for full history page)
+communityRouter.get('/comms/broadcasts', async (req, res) => {
+  const all = getAllBroadcastsForUser(req.user!.id, req.user!.tier);
+  res.json(all);
+});
+
+// Acknowledge a broadcast popup/banner
+communityRouter.post('/comms/broadcast/:id/ack', async (req, res) => {
+  acknowledgeBroadcast(req.params.id, req.user!.id);
   res.json({ ok: true });
 });
 

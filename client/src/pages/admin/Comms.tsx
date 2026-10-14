@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Globe2, Megaphone } from 'lucide-react';
 import { ChatPanel } from '../../components/ChatPanel';
@@ -38,7 +39,20 @@ export default function Comms() {
 
   return (
     <>
-      <PageHeader eyebrow="Comms" title="Support & broadcasts" subtitle="Answer the Hub Support Desk and send announcements to every member." actions={<Button onClick={() => setBroadcast(true)}><Megaphone className="h-4 w-4" /> Broadcast</Button>} />
+      <PageHeader
+        eyebrow="Comms"
+        title="Support & broadcasts"
+        subtitle="Answer the Hub Support Desk and send announcements to every member."
+        actions={
+          <div className="flex items-center gap-2">
+            <Link to="/admin/broadcast">
+              <Button>
+                <Megaphone className="h-4 w-4" /> Broadcast & Popup Center
+              </Button>
+            </Link>
+          </div>
+        }
+      />
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <Card className="p-3 sm:p-3 lg:h-[calc(100vh-13rem)] lg:min-h-[480px] lg:overflow-y-auto">
           <button

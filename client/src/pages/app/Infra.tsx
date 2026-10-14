@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Armchair, Building2, Clapperboard, Laptop, Minus, Plus, Presentation, School, ShoppingBag, Sparkles, UtensilsCrossed, DoorClosed,
+  Armchair, Building2, Clapperboard, Clock, Laptop, Minus, Plus, Presentation, School, ShoppingBag, Sparkles, UtensilsCrossed, DoorClosed,
 } from 'lucide-react';
 import { Badge, Button, Card, Empty, Field, Loading, Modal, PageHeader, StatusBadge, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
+import { useSocketEvent } from '../../lib/socket';
 import { formatDateTime, naira } from '../../lib/format';
 import type { Booking, CatalogItem, Invoice, LoungeOrder } from '../../lib/types';
 import { toast } from '../../store/toast';
@@ -17,7 +18,7 @@ const FACILITY_ICONS: Record<string, typeof Building2> = {
   Classroom: School,
 };
 
-function Section({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function Section({ title, subtitle, children }: { title: React.ReactNode; subtitle: string; children: React.ReactNode }) {
   return (
     <section className="mt-10 first:mt-0">
       <h2 className="font-display text-xl font-bold">{title}</h2>
@@ -111,6 +112,54 @@ function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
         <Stepper value={qty} onChange={setQty} max={mode === 'hour' ? 12 : 30} label={`${mode}s`} />
         <p className="font-display text-2xl font-bold">{naira(desk.price * qty)}</p>
         <Button loading={book.isPending} onClick={() => book.mutate({ itemId: desk.id, quantity: qty })}>Reserve desk</Button>
+      </div>
+    </Card>
+  );
+}
+
+// Set to true to display the Coming Soon status on the user end while preserving all underlying code.
+const LOUNGE_COMING_SOON = true;
+
+function LoungeComingSoonCover() {
+  return (
+    <Card className="relative overflow-hidden p-8 sm:p-12 text-center">
+      <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
+      <div className="relative mx-auto max-w-2xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
+          <UtensilsCrossed className="h-8 w-8" />
+        </div>
+
+        <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          <Clock className="h-3.5 w-3.5" />
+          <span>Coming Soon · Kitchen Setup In Progress</span>
+        </div>
+
+        <h3 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+          Cafeteria & Desk-Side Refreshments
+        </h3>
+        <p className="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-400">
+          Enjoy gourmet meals, snacks, and freshly brewed artisan coffee delivered straight to your hot desk, private office, or studio without leaving your workflow.
+        </p>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-3 text-left">
+          <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">⚡ Desk-Side Delivery</p>
+            <p className="mt-1 text-xs text-slate-500 leading-normal">Tagged to your desk number so you can stay in flow while food comes to you.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">☕ Barista & Snacks</p>
+            <p className="mt-1 text-xs text-slate-500 leading-normal">Espresso, healthy bites, cold brews, and fresh lunch specials every day.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">💳 Cashless Billing</p>
+            <p className="mt-1 text-xs text-slate-500 leading-normal">Seamless checkout via wallet, bank transfer, and automated hub invoicing.</p>
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 flex items-center justify-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-500" />
+          <span>The kitchen team is currently finalizing menu pricing and supplier prep. Ordering will unlock here automatically soon.</span>
+        </div>
       </div>
     </Card>
   );
@@ -232,6 +281,10 @@ export default function Infra() {
   const [selected, setSelected] = useState<CatalogItem | null>(null);
   const book = useBook();
 
+  useSocketEvent('catalog:changed', () => {
+    qc.invalidateQueries({ queryKey: ['catalog'] });
+  });
+
   const cancel = useMutation({
     mutationFn: (id: string) => api(`/bookings/${id}/cancel`, { method: 'POST' }),
     onSuccess: () => {
@@ -254,7 +307,7 @@ export default function Infra() {
 
   return (
     <>
-      <PageHeader eyebrow="Infra" title="Infrastructure" subtitle="Book workspace, facilities and hardware — or order from the lounge." />
+      <PageHeader eyebrow="Infra" title="Infrastructure" subtitle="Book workspace, facilities and hardware — lounge orders and cafeteria coming soon." />
 
       {openBookings.length > 0 && (
         <Card className="mb-8">
@@ -338,8 +391,16 @@ export default function Infra() {
         </Card>
       </Section>
 
-      <Section title="Lounge Orders" subtitle="Cafeteria and snacks delivered to your desk.">
-        <Lounge menu={by.LOUNGE ?? []} />
+      <Section
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span>Lounge Orders</span>
+            <Badge tone="amber">Coming Soon</Badge>
+          </span>
+        }
+        subtitle="Cafeteria and desk-side refreshment ordering is coming soon to the hub."
+      >
+        {LOUNGE_COMING_SOON ? <LoungeComingSoonCover /> : <Lounge menu={by.LOUNGE ?? []} />}
       </Section>
 
       <BookModal key={selected?.id} item={selected} onClose={() => setSelected(null)} />

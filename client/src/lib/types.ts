@@ -169,3 +169,26 @@ export interface Partner {
   website: string | null;
   description: string;
 }
+
+export type BroadcastType = 'POPUP' | 'NOTIFICATION' | 'BANNER' | 'COMBO';
+export type BroadcastSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'URGENT';
+export type BroadcastTarget = 'ALL' | 'TIER' | 'USER';
+
+export interface BroadcastEntry {
+  id: string;
+  type: BroadcastType;
+  title: string;
+  body: string;
+  target: BroadcastTarget;
+  targetUserId?: string;
+  targetUserName?: string;
+  tier?: string;
+  severity: BroadcastSeverity;
+  actionUrl?: string;
+  actionLabel?: string;
+  senderId: string;
+  senderName: string;
+  deliveredCount: number;
+  createdAt: string;
+}
+

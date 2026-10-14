@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { animate, AnimatePresence, motion, useInView } from 'framer-motion';
 import {
-  ArrowRight, ChevronDown, Mail, MapPin, Menu, Phone, Quote, Sparkles, Terminal, X, ArrowUpRight, CheckCircle2,
+  ArrowRight, ChevronDown, Mail, MapPin, Menu, Phone, Quote, Sparkles, Terminal, X, ArrowUpRight, CheckCircle2, Copy, ExternalLink, Send,
 } from 'lucide-react';
-import { Button, Logo, Tabs, cn } from '../../components/ui';
+import { Button, Logo, Modal, Tabs, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../store/auth';
+import { toast } from '../../store/toast';
 import {
   DISCIPLINES, FACILITIES, FAQS, METRICS, NAV, POSTS, PROGRAMS, STARTUPS, TESTIMONIALS, type StartupCategory,
 } from './landingData';
@@ -336,6 +337,39 @@ function Footer() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [emailModal, setEmailModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [phoneCopied, setPhoneCopied] = useState(false);
+
+  const HUB_PHONE_RAW = '+2348054764906';
+  const HUB_PHONE_DISPLAY = '+234 (0) 805 476 4906';
+  const WHATSAPP_URL = `https://wa.me/2348054764906?text=${encodeURIComponent('Hello L.E.G.I.T Innovation Hub, I would like to make an inquiry.')}`;
+
+  const HUB_EMAIL = 'info@legitinnovationhub.com';
+  const GMAIL_URL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(HUB_EMAIL)}`;
+  const OUTLOOK_URL = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(HUB_EMAIL)}`;
+
+  const handleCopyPhone = async () => {
+    try {
+      await navigator.clipboard.writeText(HUB_PHONE_RAW);
+      setPhoneCopied(true);
+      toast.success('Phone copied', `${HUB_PHONE_DISPLAY} copied to clipboard.`);
+      setTimeout(() => setPhoneCopied(false), 2500);
+    } catch {
+      toast.info('Phone number', HUB_PHONE_DISPLAY);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(HUB_EMAIL);
+      setCopied(true);
+      toast.success('Email copied', `${HUB_EMAIL} copied to clipboard.`);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.info('Email address', HUB_EMAIL);
+    }
+  };
 
   async function subscribe(e: FormEvent) {
     e.preventDefault();
@@ -357,10 +391,86 @@ function Footer() {
         <div>
           <Logo />
           <p className="mt-4 max-w-sm text-sm text-slate-600 dark:text-slate-400">Driving Nigeria's digital future — one innovator, one startup at a time.</p>
-          <ul className="mt-6 space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-            <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-cyan-500" /> +234 (0) 800 123 4567</li>
-            <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-cyan-500" /> <a href="mailto:hello@legithub.com" className="hover:text-cyan-600">hello@legithub.com</a></li>
-            <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-cyan-500" /> Ibadan, Nigeria</li>
+          <ul className="mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-400">
+            <li className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-cyan-500 shrink-0" />
+                <a
+                  href={`tel:${HUB_PHONE_RAW}`}
+                  className="font-medium text-slate-700 transition hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:underline cursor-pointer"
+                  title="Click to open dial app"
+                >
+                  {HUB_PHONE_DISPLAY}
+                </a>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs">
+                <a
+                  href={`tel:${HUB_PHONE_RAW}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-600 transition hover:bg-cyan-500/20 dark:text-cyan-400"
+                  title="Open in phone/dial app"
+                >
+                  <Phone className="h-2.5 w-2.5" />
+                  <span>Call</span>
+                </a>
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600 transition hover:bg-emerald-500/20 dark:text-emerald-400"
+                  title="Chat on WhatsApp"
+                >
+                  <span>WhatsApp</span>
+                  <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyPhone}
+                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 transition hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20 cursor-pointer"
+                  title="Copy phone number"
+                >
+                  {phoneCopied ? <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" /> : <Copy className="h-2.5 w-2.5" />}
+                  <span>{phoneCopied ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </li>
+            <li className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-cyan-500 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => setEmailModal(true)}
+                  className="font-medium text-slate-700 transition hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:underline cursor-pointer"
+                  title="Click to choose email option"
+                >
+                  {HUB_EMAIL}
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs">
+                <a
+                  href={GMAIL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-600 transition hover:bg-cyan-500/20 dark:text-cyan-400"
+                  title="Open directly in Gmail"
+                >
+                  <span>Gmail</span>
+                  <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 transition hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20 cursor-pointer"
+                  title="Copy email address"
+                >
+                  {copied ? <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" /> : <Copy className="h-2.5 w-2.5" />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </li>
+            <li className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-cyan-500 shrink-0" />
+              <span>Ibadan, Nigeria</span>
+            </li>
           </ul>
         </div>
         <div>
@@ -385,6 +495,68 @@ function Footer() {
         </div>
       </div>
       <p className="mx-auto mt-12 max-w-6xl text-center text-xs text-slate-500">© {new Date().getFullYear()} L.E.G.I.T Innovation Hub. All rights reserved.</p>
+
+      <Modal open={emailModal} onClose={() => setEmailModal(false)} title="Send us an Email">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Choose how you'd like to compose your message to <strong className="text-slate-900 dark:text-white">{HUB_EMAIL}</strong>:
+          </p>
+
+          <div className="grid gap-2.5">
+            <a
+              href={GMAIL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setEmailModal(false)}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 font-semibold text-cyan-900 transition hover:bg-cyan-500/20 dark:text-cyan-200"
+            >
+              <span className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                <span className="text-sm">Open in Gmail (Web Browser)</span>
+              </span>
+              <ExternalLink className="h-4 w-4 text-cyan-500" />
+            </a>
+
+            <a
+              href={`mailto:${HUB_EMAIL}`}
+              onClick={() => setEmailModal(false)}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-medium transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <span className="flex items-center gap-3">
+                <Send className="h-5 w-5 text-slate-500" />
+                <span className="text-sm">Open in Default Mail App (Outlook, Apple Mail, etc.)</span>
+              </span>
+              <ExternalLink className="h-4 w-4 text-slate-400" />
+            </a>
+
+            <a
+              href={OUTLOOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setEmailModal(false)}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-medium transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <span className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-sky-600" />
+                <span className="text-sm">Open in Outlook Web</span>
+              </span>
+              <ExternalLink className="h-4 w-4 text-slate-400" />
+            </a>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-100/70 p-3 dark:border-white/10 dark:bg-white/5">
+            <span className="truncate font-mono text-xs text-slate-600 dark:text-slate-400">{HUB_EMAIL}</span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
+            >
+              {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>{copied ? 'Copied!' : 'Copy Address'}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </footer>
   );
 }

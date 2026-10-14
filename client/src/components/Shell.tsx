@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Menu, X, type LucideIcon } from 'lucide-react';
+import { Bell, Menu, X, ArrowRight, type LucideIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { timeAgo } from '../lib/format';
 import type { Notification } from '../lib/types';
@@ -14,6 +14,8 @@ export interface NavItem {
   icon: LucideIcon;
   end?: boolean;
   badge?: number;
+  section?: string;
+  soon?: boolean;
 }
 
 /** Sidebar + top status bar layout shared by the client terminal and the admin portal. */
@@ -31,25 +33,49 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
       {!collapsed && <p className="px-6 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 scrollbar-thin">
         {nav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.end}
-            title={collapsed ? n.label : undefined}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition',
-                collapsed ? 'justify-center px-0 w-10 mx-auto' : 'px-3.5',
-                isActive
-                  ? 'bg-gradient-to-r from-cyan-500/15 to-blue-600/10 text-cyan-700 ring-1 ring-cyan-500/30 dark:text-cyan-300'
-                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
-              )
-            }
-          >
-            <n.icon className="h-[18px] w-[18px] shrink-0" />
-            {!collapsed && <span className="flex-1 truncate">{n.label}</span>}
-            {!collapsed && !!n.badge && <span className="rounded-full bg-cyan-500 px-2 text-[11px] font-bold text-white">{n.badge}</span>}
-          </NavLink>
+          <div key={n.to}>
+            {n.section && !collapsed && (
+              <p className="mt-4 mb-1.5 px-3 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {n.section}
+              </p>
+            )}
+            <NavLink
+              to={n.to}
+              end={n.end}
+              title={collapsed ? n.label : undefined}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition',
+                  collapsed ? 'justify-center px-0 w-10 mx-auto' : 'px-3.5',
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500/15 to-blue-600/10 text-cyan-700 ring-1 ring-cyan-500/30 dark:text-cyan-300'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+                )
+              }
+            >
+              <div className="relative shrink-0">
+                <n.icon className="h-[18px] w-[18px]" />
+                {!!n.badge && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500 ring-2 ring-white dark:ring-slate-900" />
+                  </span>
+                )}
+              </div>
+              {!collapsed && <span className="flex-1 truncate">{n.label}</span>}
+              {!collapsed && n.soon && !n.badge && (
+                <span className="ml-auto rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  Soon
+                </span>
+              )}
+              {!collapsed && !!n.badge && (
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-cyan-500/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                  {n.badge}
+                </span>
+              )}
+            </NavLink>
+          </div>
         ))}
       </nav>
       {footer && !collapsed && <div className="border-t border-slate-200 p-3 dark:border-white/10">{footer}</div>}
@@ -121,7 +147,6 @@ export function NotificationBell() {
 
   const toggle = () => {
     setOpen(!open);
-    if (!open && data?.unread) readAll.mutate();
   };
 
   return (
@@ -129,7 +154,9 @@ export function NotificationBell() {
       <button onClick={toggle} className="relative rounded-full p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Notifications">
         <Bell className="h-[18px] w-[18px]" />
         {!!data?.unread && (
-          <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cyan-500 px-1 text-[10px] font-bold text-white">{data.unread}</span>
+          <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cyan-500 px-1 text-[10px] font-bold text-white shadow-md shadow-cyan-500/40 ring-2 ring-white dark:ring-slate-950 animate-pulse">
+            {data.unread}
+          </span>
         )}
       </button>
       <AnimatePresence>
@@ -140,7 +167,18 @@ export function NotificationBell() {
             exit={{ opacity: 0, y: -6 }}
             className="glass absolute right-0 top-12 z-40 w-[min(360px,calc(100vw-2rem))] bg-white/95 p-2 shadow-xl dark:bg-slate-900/95"
           >
-            <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</p>
+            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</p>
+              {!!data?.unread && (
+                <button
+                  onClick={() => readAll.mutate()}
+                  disabled={readAll.isPending}
+                  className="text-[11px] font-semibold text-cyan-600 hover:underline dark:text-cyan-400"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
             <div className="max-h-96 overflow-y-auto scrollbar-thin">
               {data?.items.length ? (
                 data.items.map((n) => (
@@ -153,6 +191,16 @@ export function NotificationBell() {
               ) : (
                 <p className="px-3 py-6 text-center text-sm text-slate-500">You're all caught up.</p>
               )}
+            </div>
+            <div className="mt-2 border-t border-slate-200/60 pt-2 dark:border-white/10">
+              <Link
+                to="/app/notifications"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-white/5"
+              >
+                <span>View all in Notifications Page</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </motion.div>
         )}

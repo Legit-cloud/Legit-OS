@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Clock, DoorOpen, Hourglass, Layers } from 'lucide-react';
 import { Badge, Button, Card, Loading, PageHeader } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
+import { useSocketEvent } from '../../lib/socket';
 import { naira } from '../../lib/format';
 import type { Course, Invoice } from '../../lib/types';
 import { toast } from '../../store/toast';
@@ -77,7 +78,13 @@ function CourseCard({ course }: { course: Course }) {
 }
 
 export default function Academy() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['courses'], queryFn: () => api<Course[]>('/courses') });
+
+  useSocketEvent('courses:changed', () => {
+    qc.invalidateQueries({ queryKey: ['courses'] });
+  });
+
   if (isLoading) return <Loading />;
   return (
     <>
