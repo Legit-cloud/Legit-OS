@@ -7,7 +7,7 @@ import { prisma } from '../lib/prisma.js';
 import { BANK_DETAILS, PRO_MONTHLY_PRICE } from '../lib/env.js';
 import { badRequest, HttpError, notFound } from '../lib/http.js';
 import { log } from '../lib/telemetry.js';
-import { emitToAdmins } from '../lib/realtime.js';
+import { emitToAdmins, notifyAdmins } from '../lib/realtime.js';
 
 export const UPLOAD_DIR = path.resolve(import.meta.dirname, '../../uploads');
 
@@ -79,6 +79,10 @@ financeRouter.post('/finance/proofs', upload.single('receipt'), async (req, res)
     data: { userId, invoiceId: data.invoiceId, amount: data.amount, note: data.note, receiptUrl: req.file.filename },
   });
   await log('INFO', `Payment proof submitted by ${req.user!.fullName}: ₦${data.amount.toLocaleString()}`, userId);
+  await notifyAdmins(
+    'Payment Proof Submitted',
+    `${req.user!.fullName} uploaded payment proof for ₦${data.amount.toLocaleString()}${data.note ? ` ("${data.note}")` : ''}. Review in Action Queue.`
+  );
   emitToAdmins('queue:changed', null);
   const { receiptUrl: _hidden, ...rest } = proof;
   res.status(201).json(rest);

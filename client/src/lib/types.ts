@@ -55,6 +55,10 @@ export interface CatalogItem {
   unit: 'hour' | 'day' | 'month' | 'item';
   available: boolean;
   sortOrder: number;
+  totalCapacity?: number;
+  maxCapacity?: number;
+  bookedUnits?: number;
+  availableUnits?: number;
 }
 
 export interface Booking {

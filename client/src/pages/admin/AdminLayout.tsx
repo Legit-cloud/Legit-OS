@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  LayoutDashboard, ListChecks, Boxes, Bike, CalendarDays, Users, Handshake, BookOpenCheck, MessagesSquare, Activity, LogOut, MonitorSmartphone, Laptop, GraduationCap, Building2, Wallet,
+  LayoutDashboard, ListChecks, Boxes, Bike, CalendarDays, Users, Handshake, BookOpenCheck, MessagesSquare, Activity, LogOut, Laptop, GraduationCap,
   X, Trophy, Flame, ShieldCheck, Megaphone
 } from 'lucide-react';
 import { Shell, NotificationBell, type NavItem } from '../../components/Shell';
@@ -57,10 +57,6 @@ function AdminProfileDrawer({ open, onClose }: { open: boolean; onClose: () => v
                 <p className="text-xs text-slate-500">Active streak</p>
               </div>
             </div>
-            <div className="mt-6 space-y-2">
-              <Link to="/app" onClick={onClose}><Button variant="outline" className="w-full">Open Member L.E.G.I.T OS</Button></Link>
-              <Link to="/app/profile" onClick={onClose}><Button variant="outline" className="w-full">View full profile</Button></Link>
-            </div>
             <Button variant="danger" className="mt-6 w-full" onClick={() => logout()}><LogOut className="h-4 w-4" /> Sign out</Button>
           </motion.aside>
         </>
@@ -102,25 +98,12 @@ export default function AdminLayout() {
     { to: '/admin/ledger', label: 'Global Ledger', icon: BookOpenCheck },
     { to: '/admin/comms', label: 'Comms', icon: MessagesSquare },
     { to: '/admin/telemetry', label: 'Device Telemetry', icon: Activity },
-
-    // ── Member Terminal (Merged under Admin) ──
-    { to: '/app/infra', label: 'Infra & Workstations', icon: Building2, section: 'Member Terminal (Live App)' },
-    { to: '/app/academy', label: 'Academy Classroom', icon: GraduationCap },
-    { to: '/app/events', label: 'Member Events', icon: CalendarDays },
-    { to: '/app/transit', label: 'Transit Dispatch', icon: Bike },
-    { to: '/app/finance', label: 'Finance & Invoices', icon: Wallet },
-    { to: '/app/network', label: 'Community Network', icon: Users },
   ];
 
   return (
     <Shell
       nav={nav}
       title="Admin Command Center"
-      footer={
-        <Link to="/app" className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-white/5 font-medium">
-          <MonitorSmartphone className="h-4 w-4" /> Open Member L.E.G.I.T OS
-        </Link>
-      }
       topRight={
         <>
           <NotificationBell />
@@ -144,3 +127,5 @@ export default function AdminLayout() {
     </Shell>
   );
 }
+
+

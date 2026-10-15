@@ -22,6 +22,7 @@ import { financeRouter, UPLOAD_DIR } from './routes/finance.js';
 import { communityRouter } from './routes/community.js';
 import { transitRouter } from './routes/transit.js';
 import { adminRouter } from './routes/admin.js';
+import { startAssetTrackingAgent } from './workers/assetTracker.js';
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -72,7 +73,9 @@ if (env.redisUrl) {
 setIo(io);
 setupSocket(io);
 
+
 server.listen(env.port, () => {
   console.log(`L.E.G.I.T Hub API listening on http://localhost:${env.port}`);
   void log('INFO', 'Hub API online');
+  startAssetTrackingAgent({ heartbeatIntervalMs: 15_000, defaultMaxCapacity: 10, stalePendingHours: 24 });
 });

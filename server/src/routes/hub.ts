@@ -3,28 +3,66 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { badRequest, HttpError, notFound } from '../lib/http.js';
 import { log } from '../lib/telemetry.js';
-import { emitToAdmins } from '../lib/realtime.js';
+import { emitToAdmins, emitToUser, notify, notifyAdmins } from '../lib/realtime.js';
 
 export const hubRouter = Router();
 
 const BOOKABLE = ['DESK', 'FACILITY', 'PROGRAM', 'HARDWARE'];
 const CHECK_IN = ['DESK', 'FACILITY'];
-const UNIT_MS: Record<string, number> = { hour: 3600e3, day: 24 * 3600e3, month: 30 * 24 * 3600e3 };
+// export const UNIT_MS: Record<string, number> = { hour: 3600e3, day: 24 * 3600e3, month: 30 * 24 * 3600e3 };
+export const UNIT_MS: Record<string, number> = { hour: 60e3, day: 120e3, month: 300e3 };
 
-/** Flips sessions whose time has run out to COMPLETED. */
+/** Flips sessions whose time has run out to COMPLETED and notifies member & admin. */
 export async function expireSessions() {
-  await prisma.booking.updateMany({
-    where: { status: 'ACTIVE', endsAt: { lt: new Date() } },
-    data: { status: 'COMPLETED' },
+  const now = new Date();
+  const expired = await prisma.booking.findMany({
+    where: { status: 'ACTIVE', endsAt: { lte: now } },
+    include: { item: true, user: { select: { id: true, fullName: true } } },
   });
+  if (expired.length === 0) return;
+
+  for (const b of expired) {
+    await prisma.booking.update({
+      where: { id: b.id },
+      data: { status: 'COMPLETED' },
+    });
+    const userMsg = `Your session for ${b.item.name} has concluded. Thank you for using L.E.G.I.T Innovation Hub!`;
+    const adminMsg = `Session for member ${b.user.fullName} (${b.item.name}) has concluded.`;
+    await notify(b.userId, 'Session Concluded', userMsg);
+    await notifyAdmins('Session Completed', adminMsg);
+    emitToUser(b.userId, 'session:ended', { bookingId: b.id, itemName: b.item.name });
+    emitToAdmins('session:ended', { bookingId: b.id, userId: b.userId, itemName: b.item.name });
+    emitToUser(b.userId, 'bookings:changed', null);
+  }
 }
 
 hubRouter.get('/catalog', async (_req, res) => {
   const items = await prisma.catalogItem.findMany({
     where: { available: true },
+    include: {
+      bookings: {
+        where: { status: { in: ['ACTIVE', 'CONFIRMED'] } },
+        select: { quantity: true },
+      },
+    },
     orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
   });
-  res.json(items);
+
+  const enriched = items.map((item) => {
+    const { bookings, ...rest } = item;
+    const maxCapacity = (item as any).totalCapacity ?? 10;
+    const bookedUnits = bookings.length;
+    const availableUnits = Math.max(0, maxCapacity - bookedUnits);
+    return {
+      ...rest,
+      totalCapacity: maxCapacity,
+      maxCapacity,
+      bookedUnits,
+      availableUnits,
+    };
+  });
+
+  res.json(enriched);
 });
 
 hubRouter.get('/bookings', async (req, res) => {
@@ -72,17 +110,43 @@ hubRouter.post('/bookings/:id/checkin', async (req, res) => {
   if (booking.status !== 'CONFIRMED') throw badRequest('Only confirmed (paid) bookings can be checked in');
   if (!CHECK_IN.includes(booking.item.category)) throw badRequest('This booking does not need a check-in');
 
+  const existingActive = await prisma.booking.findFirst({
+    where: { userId: req.user!.id, status: 'ACTIVE', endsAt: { gt: new Date() } },
+    include: { item: true },
+  });
+  if (existingActive) {
+    throw badRequest(`You already have an active session for ${existingActive.item.name}. Please wait for it to conclude before checking in.`);
+  }
+
   const now = new Date();
+  const endsAt = new Date(now.getTime() + booking.quantity * (UNIT_MS[booking.item.unit] ?? UNIT_MS.hour));
   const updated = await prisma.booking.update({
     where: { id: booking.id },
     data: {
       status: 'ACTIVE',
       startsAt: now,
-      endsAt: new Date(now.getTime() + booking.quantity * (UNIT_MS[booking.item.unit] ?? UNIT_MS.hour)),
+      endsAt,
     },
     include: { item: true },
   });
+
+  const timeStr = endsAt.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+
+  // 1. Notify all admins immediately
+  await notifyAdmins(
+    'Member Check-In',
+    `🟢 ${req.user!.fullName} checked in to ${booking.item.name} for ${booking.quantity} ${booking.item.unit}${booking.quantity > 1 ? 's' : ''} (Concludes at ${timeStr}).`
+  );
+
+  // 2. Notify the member
+  await notify(
+    req.user!.id,
+    'Check-In Confirmed',
+    `You checked in to ${booking.item.name}. Your session has started and will conclude at ${timeStr}.`
+  );
+
   await log('INFO', `${req.user!.fullName} checked in to ${booking.item.name}`, req.user!.id);
+  emitToAdmins('queue:changed', null);
   res.json(updated);
 });
 

@@ -15,6 +15,9 @@ import {
   Maximize2,
   Sparkles,
   Inbox,
+  Volume2,
+  VolumeX,
+  Play,
 } from 'lucide-react';
 import { Button, Card, PageHeader, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
@@ -22,11 +25,21 @@ import { timeAgo } from '../../lib/format';
 import { toast } from '../../store/toast';
 import { triggerPopup } from '../../components/BroadcastReceiver';
 import type { BroadcastEntry, Notification } from '../../lib/types';
+import {
+  isSoundEnabled,
+  toggleSound,
+  playChime,
+  getDesktopNotificationPermission,
+  requestDesktopNotificationPermission,
+  showDesktopNotification,
+} from '../../lib/soundAndNotification';
 
 export default function Notifications() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'unread' | 'broadcasts'>('all');
   const [search, setSearch] = useState('');
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [desktopPerm, setDesktopPerm] = useState(() => getDesktopNotificationPermission());
 
   // Notifications query
   const notifQuery = useQuery({
@@ -96,6 +109,46 @@ export default function Notifications() {
         subtitle="Stay updated with official hub announcements, interactive popups, and important updates sent directly from administration."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const next = toggleSound();
+                setSoundOn(next);
+                if (next) playChime('chime');
+                toast.info(next ? 'Audio chime enabled' : 'Audio chime muted');
+              }}
+              title={soundOn ? 'Mute audio chime' : 'Enable audio chime'}
+            >
+              {soundOn ? <Volume2 className="h-4 w-4 text-cyan-500" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
+              {soundOn ? 'Chime on' : 'Chime muted'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => playChime('chime')}
+              title="Test audio chime"
+            >
+              <Play className="h-4 w-4 text-cyan-500" /> Test Chime
+            </Button>
+            {desktopPerm !== 'granted' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={async () => {
+                  const granted = await requestDesktopNotificationPermission();
+                  setDesktopPerm(getDesktopNotificationPermission());
+                  if (granted) {
+                    showDesktopNotification('L.E.G.I.T Innovation Hub', 'Desktop notifications enabled!');
+                    toast.success('Desktop notifications enabled');
+                  } else {
+                    toast.error('Permission denied', 'Please check browser settings to enable desktop alerts.');
+                  }
+                }}
+              >
+                <BellRing className="h-4 w-4" /> Enable Desktop Alerts
+              </Button>
+            )}
             {unreadCount > 0 && (
               <Button
                 variant="outline"

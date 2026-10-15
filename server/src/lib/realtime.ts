@@ -39,3 +39,16 @@ export async function notify(userId: string, title: string, body: string) {
   emitToUser(userId, 'notification', n);
   return n;
 }
+
+export async function notifyAdmins(title: string, body: string) {
+  const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+  const records = await Promise.all(
+    admins.map(async (a) => {
+      const n = await prisma.notification.create({ data: { userId: a.id, title, body } });
+      emitToUser(a.id, 'notification', n);
+      return n;
+    })
+  );
+  emitToAdmins('admin:notification', { title, body });
+  return records;
+}

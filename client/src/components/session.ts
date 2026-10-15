@@ -7,6 +7,8 @@ import type { Notification, User } from '../lib/types';
 import { useAuth } from '../store/auth';
 import { toast } from '../store/toast';
 
+import { handleIncomingAlert } from '../lib/soundAndNotification';
+
 /**
  * Keeps the signed-in session fresh: refreshes the profile, opens the socket,
  * and reacts to server pushes (notifications, forced logout, profile changes).
@@ -26,11 +28,16 @@ export function useSessionSync() {
   }, []);
 
   useSocketEvent<Notification>('notification', (n) => {
+    handleIncomingAlert(n.title, n.body);
     toast.info(n.title, n.body);
     qc.invalidateQueries({ queryKey: ['notifications'] });
   });
   useSocketEvent('profile:changed', () => {
     for (const key of ['me', 'finance', 'courses', 'bookings', 'lounge']) qc.invalidateQueries({ queryKey: [key] });
+  });
+  useSocketEvent('bookings:changed', () => {
+    qc.invalidateQueries({ queryKey: ['bookings'] });
+    qc.invalidateQueries({ queryKey: ['lounge'] });
   });
   useSocketEvent('force-logout', () => {
     toast.error('Session ended', 'Your account access was changed by an administrator.');

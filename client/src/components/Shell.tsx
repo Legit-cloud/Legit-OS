@@ -2,11 +2,19 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Menu, X, ArrowRight, type LucideIcon } from 'lucide-react';
+import { Bell, Menu, X, ArrowRight, PanelLeftClose, PanelLeftOpen, Volume2, VolumeX, Play, type LucideIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { timeAgo } from '../lib/format';
 import type { Notification } from '../lib/types';
 import { Logo, cn } from './ui';
+import {
+  isSoundEnabled,
+  toggleSound,
+  playChime,
+  getDesktopNotificationPermission,
+  requestDesktopNotificationPermission,
+  showDesktopNotification,
+} from '../lib/soundAndNotification';
 
 export interface NavItem {
   to: string;
@@ -27,10 +35,53 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className={cn('flex items-center px-5 py-5', collapsed ? 'justify-center' : '')}>
+      <div
+        className={cn(
+          'flex items-center px-5 py-4 border-b border-slate-200/60 dark:border-white/10',
+          collapsed ? 'flex-col gap-2.5 px-2 py-4 justify-center' : 'justify-between'
+        )}
+      >
         <Logo compact={collapsed} />
+
+        {/* Desktop Collapse Button - placed INSIDE the side panel */}
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            className="hidden rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 lg:flex dark:hover:bg-white/10 dark:hover:text-slate-200"
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </button>
+        )}
+
+        {/* Mobile Close Button - placed INSIDE the mobile side panel header */}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="flex rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 lg:hidden dark:hover:bg-white/10 dark:hover:text-slate-200"
+          title="Close sidebar"
+          aria-label="Close sidebar"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Desktop Expand Button when collapsed - inside the side panel */}
+        {collapsed && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="hidden rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-cyan-600 lg:flex dark:hover:bg-white/10 dark:hover:text-cyan-400"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpen className="h-5 w-5" />
+          </button>
+        )}
       </div>
-      {!collapsed && <p className="px-6 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>}
+
+      {!collapsed && <p className="px-6 pt-3 pb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">{title}</p>}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 scrollbar-thin">
         {nav.map((n) => (
           <div key={n.to}>
@@ -98,7 +149,6 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
               exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             >
-              <button className="absolute right-3 top-5 rounded-full p-2" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button>
               {sidebar}
             </motion.aside>
           </>
@@ -107,10 +157,7 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
 
       <div className={cn('transition-all duration-300', collapsed ? 'lg:pl-20' : 'lg:pl-64')}>
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-[#05070d]/80">
-          <button className="rounded-full p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
-          <button className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200/60 lg:block dark:text-slate-400 dark:hover:bg-white/10" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
-            <Menu className="h-5 w-5" />
-          </button>
+          <button className="rounded-full p-2 text-slate-600 hover:bg-slate-200/60 lg:hidden dark:text-slate-300 dark:hover:bg-white/10" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
           <span className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-400">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -131,12 +178,28 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
 export function NotificationBell() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [desktopPerm, setDesktopPerm] = useState(() => getDesktopNotificationPermission());
   const ref = useRef<HTMLDivElement>(null);
   const { data } = useQuery({ queryKey: ['notifications'], queryFn: () => api<{ items: Notification[]; unread: number }>('/notifications') });
   const readAll = useMutation({
     mutationFn: () => api('/notifications/read-all', { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
+
+  const handleToggleSound = () => {
+    const next = toggleSound();
+    setSoundOn(next);
+    if (next) playChime('pop');
+  };
+
+  const handleRequestDesktop = async () => {
+    const granted = await requestDesktopNotificationPermission();
+    setDesktopPerm(getDesktopNotificationPermission());
+    if (granted) {
+      showDesktopNotification('L.E.G.I.T Innovation Hub', 'Desktop notifications enabled!');
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -168,7 +231,25 @@ export function NotificationBell() {
             className="glass absolute right-0 top-12 z-40 w-[min(360px,calc(100vw-2rem))] bg-white/95 p-2 shadow-xl dark:bg-slate-900/95"
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</p>
+                <button
+                  type="button"
+                  onClick={handleToggleSound}
+                  title={soundOn ? 'Audio chime enabled (Click to mute)' : 'Audio chime muted (Click to enable)'}
+                  className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-cyan-600 dark:hover:bg-white/10 dark:hover:text-cyan-400"
+                >
+                  {soundOn ? <Volume2 className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" /> : <VolumeX className="h-3.5 w-3.5 text-slate-400" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playChime('chime')}
+                  title="Test audio chime"
+                  className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-cyan-600 dark:hover:bg-white/10 dark:hover:text-cyan-400"
+                >
+                  <Play className="h-3 w-3" />
+                </button>
+              </div>
               {!!data?.unread && (
                 <button
                   onClick={() => readAll.mutate()}
@@ -179,6 +260,20 @@ export function NotificationBell() {
                 </button>
               )}
             </div>
+
+            {/* Desktop Notification Prompt */}
+            {desktopPerm === 'default' && (
+              <div className="mx-2 mt-2 flex items-center justify-between rounded-xl bg-cyan-500/10 px-2.5 py-1.5 text-xs text-cyan-700 dark:text-cyan-300">
+                <span>Enable desktop push alerts?</span>
+                <button
+                  type="button"
+                  onClick={handleRequestDesktop}
+                  className="rounded-lg bg-cyan-500 px-2 py-0.5 text-[11px] font-semibold text-white shadow hover:bg-cyan-600"
+                >
+                  Enable
+                </button>
+              </div>
+            )}
             <div className="max-h-96 overflow-y-auto scrollbar-thin">
               {data?.items.length ? (
                 data.items.map((n) => (

@@ -45,6 +45,7 @@ function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode
     return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
   if (admin && user.role !== 'ADMIN') return <Navigate to="/admin/login?error=unauthorized" replace />;
+  if (!admin && user.role === 'ADMIN') return <Navigate to="/admin" replace />;
   return <>{children}</>;
 }
 

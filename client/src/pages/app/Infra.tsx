@@ -28,12 +28,48 @@ function Section({ title, subtitle, children }: { title: React.ReactNode; subtit
   );
 }
 
-function Stepper({ value, onChange, min = 1, max = 99, label }: { value: number; onChange: (n: number) => void; min?: number; max?: number; label: string }) {
+function Stepper({
+  value,
+  onChange,
+  min = 1,
+  max = 99,
+  label,
+  unit,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  min?: number;
+  max?: number;
+  label: string;
+  unit?: string;
+}) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 p-1 dark:border-white/10" aria-label={label}>
-      <button type="button" className="rounded-full p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={value <= min} onClick={() => onChange(value - 1)} aria-label={`Decrease ${label}`}><Minus className="h-3.5 w-3.5" /></button>
-      <span className="w-8 text-center font-mono text-sm font-semibold tabular-nums">{value}</span>
-      <button type="button" className="rounded-full p-1.5 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10" disabled={value >= max} onClick={() => onChange(value + 1)} aria-label={`Increase ${label}`}><Plus className="h-3.5 w-3.5" /></button>
+    <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 p-1 shadow-sm dark:border-white/10 dark:bg-slate-900/60" aria-label={label}>
+      <button
+        type="button"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+        disabled={value <= min}
+        onClick={() => onChange(value - 1)}
+        aria-label={`Decrease ${label}`}
+        title={unit ? `Decrease by 1 ${unit}` : `Decrease ${label}`}
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </button>
+
+      <span className="min-w-14 px-2 text-center font-mono text-xs sm:text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100 whitespace-nowrap">
+        {value} {unit ? `${unit}${value > 1 && !unit.endsWith('s') ? 's' : ''}` : ''}
+      </span>
+
+      <button
+        type="button"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+        disabled={value >= max}
+        onClick={() => onChange(value + 1)}
+        aria-label={`Increase ${label}`}
+        title={unit ? `Increase by 1 ${unit}` : `Increase ${label}`}
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -58,19 +94,36 @@ function BookModal({ item, onClose }: { item: CatalogItem | null; onClose: () =>
   const book = useBook();
   if (!item) return <Modal open={false} onClose={onClose} title="">{null}</Modal>;
   const max = item.unit === 'hour' ? 12 : item.unit === 'day' ? 30 : 12;
+  const isAvailable = item.availableUnits === undefined || item.availableUnits > 0;
   return (
     <Modal open onClose={onClose} title={`Book ${item.name}`}>
-      <p className="text-sm text-slate-500">{item.description}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-slate-500">{item.description}</p>
+        {item.availableUnits !== undefined && (
+          <span className={cn(
+            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+            isAvailable ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+          )}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', isAvailable ? 'bg-emerald-500' : 'bg-rose-500')} />
+            {isAvailable ? `${item.availableUnits} of ${item.maxCapacity ?? 10} available` : 'Fully booked'}
+          </span>
+        )}
+      </div>
       <div className="mt-5 flex items-center justify-between">
-        <span className="text-sm font-semibold">How many {item.unit}s?</span>
-        <Stepper value={qty} onChange={setQty} max={max} label={`${item.unit}s`} />
+        <div>
+          <span className="text-sm font-semibold block">Select duration:</span>
+          <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">
+            (+1 {item.unit} per click)
+          </span>
+        </div>
+        <Stepper value={qty} onChange={setQty} max={max} label={`${item.unit}s`} unit={item.unit} />
       </div>
       <div className="mt-5 flex items-center justify-between rounded-2xl bg-cyan-500/10 px-4 py-3">
         <span className="text-sm">{naira(item.price)} × {qty} {item.unit}{qty > 1 ? 's' : ''}</span>
         <span className="font-display text-xl font-bold">{naira(item.price * qty)}</span>
       </div>
-      <Button className="mt-5 w-full" loading={book.isPending} onClick={() => book.mutate({ itemId: item.id, quantity: qty })}>
-        Book & proceed to payment
+      <Button className="mt-5 w-full" disabled={!isAvailable} loading={book.isPending} onClick={() => book.mutate({ itemId: item.id, quantity: qty })}>
+        {isAvailable ? 'Book & proceed to payment' : 'Currently fully booked'}
       </Button>
     </Modal>
   );
@@ -82,36 +135,74 @@ function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
   const book = useBook();
   const desk = desks.find((d) => d.unit === mode) ?? desks[0];
   if (!desk) return <Empty title="No desks available right now" />;
+  const isAvailable = desk.availableUnits === undefined || desk.availableUnits > 0;
 
   return (
     <Card className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
       <div>
-        <div className="inline-flex rounded-full border border-slate-200 p-1 dark:border-white/10" role="radiogroup" aria-label="Desk plan">
-          {(['hour', 'day'] as const).filter((m) => desks.some((d) => d.unit === m)).map((m) => (
-            <button
-              key={m}
-              role="radio"
-              aria-checked={mode === m}
-              onClick={() => { setMode(m); setQty(m === 'hour' ? 2 : 1); }}
-              className={cn('rounded-full px-5 py-2 text-sm font-semibold transition', mode === m ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white' : 'text-slate-600 dark:text-slate-300')}
-            >
-              {m === 'hour' ? 'Hourly rate' : 'Day pass'}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-full border border-slate-200 p-1 dark:border-white/10" role="radiogroup" aria-label="Desk plan">
+            {(['hour', 'day'] as const).filter((m) => desks.some((d) => d.unit === m)).map((m) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={mode === m}
+                onClick={() => { setMode(m); setQty(m === 'hour' ? 2 : 1); }}
+                className={cn('rounded-full px-5 py-2 text-sm font-semibold transition', mode === m ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300')}
+              >
+                {m === 'hour' ? 'Hourly rate' : 'Day pass'}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-slate-500 font-medium">
+            {mode === 'hour' ? 'Book flexible hours' : 'Full-day access pass'}
+          </span>
         </div>
+
         <div className="mt-5 flex items-start gap-4">
-          <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400"><Armchair className="h-6 w-6" /></span>
+          <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 shrink-0"><Armchair className="h-6 w-6" /></span>
           <div>
-            <p className="font-display text-lg font-bold">{desk.name}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-display text-lg font-bold">{desk.name}</p>
+              {desk.availableUnits !== undefined && (
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                  isAvailable ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                )}>
+                  <span className={cn('h-1.5 w-1.5 rounded-full', isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500')} />
+                  {isAvailable ? `${desk.availableUnits} of ${desk.maxCapacity ?? 10} available` : 'Fully booked'}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-slate-500">{desk.description}</p>
             <p className="mt-1 font-semibold text-cyan-600 dark:text-cyan-400">{naira(desk.price)} / {desk.unit}</p>
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-start gap-3 md:items-end">
-        <Stepper value={qty} onChange={setQty} max={mode === 'hour' ? 12 : 30} label={`${mode}s`} />
-        <p className="font-display text-2xl font-bold">{naira(desk.price * qty)}</p>
-        <Button loading={book.isPending} onClick={() => book.mutate({ itemId: desk.id, quantity: qty })}>Reserve desk</Button>
+
+      <div className="flex flex-col items-start gap-3.5 md:items-end">
+        <div className="flex flex-col items-start md:items-end gap-1.5">
+          <Stepper
+            value={qty}
+            onChange={setQty}
+            max={mode === 'hour' ? 12 : 30}
+            label={`${mode}s`}
+            unit={mode === 'hour' ? 'hr' : 'day'}
+          />
+        </div>
+
+        <div className="text-left md:text-right">
+          <p className="text-xs text-slate-500 font-medium">
+            {naira(desk.price)} × {qty} {mode === 'hour' ? 'hour' : 'day'}{qty > 1 ? 's' : ''}
+          </p>
+          <p className="font-display text-2xl font-bold text-slate-900 dark:text-white">
+            {naira(desk.price * qty)}
+          </p>
+        </div>
+
+        <Button disabled={!isAvailable} loading={book.isPending} onClick={() => book.mutate({ itemId: desk.id, quantity: qty })}>
+          {isAvailable ? 'Reserve desk' : 'Fully booked'}
+        </Button>
       </div>
     </Card>
   );
@@ -343,13 +434,29 @@ export default function Infra() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {(by.FACILITY ?? []).map((f) => {
             const Icon = FACILITY_ICONS[f.name] ?? Building2;
+            const isFull = f.availableUnits !== undefined && f.availableUnits <= 0;
             return (
               <Card key={f.id} className="flex flex-col">
-                <span className="w-fit rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 p-3 text-white"><Icon className="h-5 w-5" /></span>
+                <div className="flex items-center justify-between">
+                  <span className="w-fit rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 p-3 text-white"><Icon className="h-5 w-5" /></span>
+                  {f.availableUnits !== undefined && (
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                      !isFull
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    )}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
+                      {!isFull ? `${f.availableUnits} available` : 'Booked'}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-4 font-display text-lg font-bold">{f.name}</p>
                 <p className="flex-1 text-sm text-slate-500">{f.description}</p>
-                <p className="mt-3 font-semibold">{naira(f.price)}<span className="text-sm font-normal text-slate-500">/hr</span></p>
-                <Button size="sm" className="mt-3" onClick={() => setSelected(f)}>Book</Button>
+                <p className="mt-3 font-semibold">{naira(f.price)}<span className="text-sm font-normal text-slate-500">/{f.unit}</span></p>
+                <Button size="sm" className="mt-3" disabled={isFull} onClick={() => setSelected(f)}>
+                  {isFull ? 'Fully booked' : 'Book'}
+                </Button>
               </Card>
             );
           })}
@@ -373,20 +480,36 @@ export default function Infra() {
         </div>
       </Section>
 
-      <Section title="Hardware Rentals" subtitle="Rent high-spec workstations by the day.">
+      <Section title="Hardware Rentals" subtitle="Rent high-spec workstations and laptops for your projects.">
         <Card className="p-0 sm:p-0">
           <ul className="divide-y divide-slate-200 dark:divide-white/10">
-            {(by.HARDWARE ?? []).map((h) => (
-              <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                <Laptop className="h-6 w-6 text-cyan-500" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{h.name}</p>
-                  <p className="text-sm text-slate-500">{h.description}</p>
-                </div>
-                <p className="font-semibold">{naira(h.price)}<span className="text-sm font-normal text-slate-500">/day</span></p>
-                <Button size="sm" variant="outline" onClick={() => setSelected(h)}>Rent</Button>
-              </li>
-            ))}
+            {(by.HARDWARE ?? []).map((h) => {
+              const isFull = h.availableUnits !== undefined && h.availableUnits <= 0;
+              return (
+                <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                  <Laptop className="h-6 w-6 text-cyan-500" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold">{h.name}</p>
+                      {h.availableUnits !== undefined && (
+                        <span className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+                          !isFull ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                        )}>
+                          <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
+                          {!isFull ? `${h.availableUnits} of ${h.maxCapacity ?? 10} available` : 'All rented'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500">{h.description}</p>
+                  </div>
+                  <p className="font-semibold">{naira(h.price)}<span className="text-sm font-normal text-slate-500">/{h.unit}</span></p>
+                  <Button size="sm" variant="outline" disabled={isFull} onClick={() => setSelected(h)}>
+                    {isFull ? 'Unavailable' : 'Rent'}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </Card>
       </Section>

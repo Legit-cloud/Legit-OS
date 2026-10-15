@@ -1,0 +1,8 @@
+- [x] Remove the user panel from admin account (Completed)
+- [x] add a tracking agent that'll keep track of current and available hub assets (Completed)
+- Integrate OTP email verification
+- Integrate watching of videos from google drive(future update)
+- [x] make ordering more than one hub asset clearer to users (Completed)
+- Integrate an admin invite via email and reset password on first time log in
+- [x] get notified after user checks in (Completed)
+- Update face recognition logic

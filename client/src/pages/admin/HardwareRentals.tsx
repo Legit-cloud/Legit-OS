@@ -26,6 +26,7 @@ type HardwareDraft = {
   description: string;
   price: number;
   unit: CatalogItem['unit'];
+  totalCapacity?: number;
   available: boolean;
 };
 
@@ -75,8 +76,8 @@ function HardwareModalForm({ draft, onDone }: { draft: HardwareDraft; onDone: ()
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Rental Price (₦)" hint="Daily rental rate">
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Rental Price (₦)" hint="Rental rate">
           <input
             className="field font-mono"
             type="number"
@@ -85,6 +86,18 @@ function HardwareModalForm({ draft, onDone }: { draft: HardwareDraft; onDone: ()
             required
             value={form.price}
             onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+          />
+        </Field>
+
+        <Field label="Total Inventory" hint="Units in fleet">
+          <input
+            className="field font-mono"
+            type="number"
+            min={0}
+            max={1000}
+            required
+            value={form.totalCapacity ?? 10}
+            onChange={(e) => setForm({ ...form, totalCapacity: Number(e.target.value) })}
           />
         </Field>
 
@@ -170,6 +183,26 @@ export default function HardwareRentals() {
     onError: (e) => toast.error('Delete failed', errorMessage(e)),
   });
 
+  const handover = useMutation({
+    mutationFn: (id: string) => api<{ endsAt?: string }>(`/admin/hardware/${id}/handover`, { method: 'POST' }),
+    onSuccess: (data) => {
+      toast.success('Workstation Handed Over', `Rental started. Return due: ${data.endsAt ? formatDateTime(data.endsAt) : ''}`);
+      qc.invalidateQueries({ queryKey: ['admin', 'assets'] });
+      qc.invalidateQueries({ queryKey: ['catalog'] });
+    },
+    onError: (e) => toast.error('Handover failed', errorMessage(e)),
+  });
+
+  const markReturn = useMutation({
+    mutationFn: (id: string) => api(`/admin/hardware/${id}/return`, { method: 'POST' }),
+    onSuccess: () => {
+      toast.success('Workstation Returned', 'Device successfully checked back into fleet inventory.');
+      qc.invalidateQueries({ queryKey: ['admin', 'assets'] });
+      qc.invalidateQueries({ queryKey: ['catalog'] });
+    },
+    onError: (e) => toast.error('Return failed', errorMessage(e)),
+  });
+
   if (isLoading || !data) return <Loading label="Loading hardware inventory…" />;
 
   const hardwareItems = data.items.filter((i) => i.category === 'HARDWARE');
@@ -199,6 +232,7 @@ export default function HardwareRentals() {
                 description: '',
                 price: 5000,
                 unit: 'day',
+                totalCapacity: 5,
                 available: true,
               })
             }
@@ -343,7 +377,8 @@ export default function HardwareRentals() {
               <th className="px-5 py-3">Days / Qty</th>
               <th className="px-5 py-3">Total Amount</th>
               <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Duration</th>
+              <th className="px-5 py-3">Duration / Return Due</th>
+              <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-white/10">
@@ -358,13 +393,56 @@ export default function HardwareRentals() {
                 <td className="px-5 py-3 font-mono">{naira(b.amount)}</td>
                 <td className="px-5 py-3"><StatusBadge status={b.status} /></td>
                 <td className="px-5 py-3 text-xs text-slate-500">
-                  {b.endsAt ? `until ${formatDateTime(b.endsAt)}` : 'Ongoing'}
+                  {b.status === 'CONFIRMED' ? (
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      ● Awaiting Handover at Desk
+                    </span>
+                  ) : b.status === 'ACTIVE' && b.endsAt ? (
+                    <span className="font-semibold text-cyan-600 dark:text-cyan-400">
+                      Due: {formatDateTime(b.endsAt)}
+                    </span>
+                  ) : b.status === 'COMPLETED' ? (
+                    <span className="text-slate-400">Returned</span>
+                  ) : (
+                    <span>{b.endsAt ? `until ${formatDateTime(b.endsAt)}` : '—'}</span>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-right">
+                  {b.status === 'CONFIRMED' && (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => handover.mutate(b.id)}
+                      loading={handover.isPending}
+                      className="gap-1.5 whitespace-nowrap"
+                    >
+                      <Laptop className="h-3.5 w-3.5" />
+                      <span>Hand Over</span>
+                    </Button>
+                  )}
+                  {b.status === 'ACTIVE' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => markReturn.mutate(b.id)}
+                      loading={markReturn.isPending}
+                      className="gap-1.5 whitespace-nowrap text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Mark Returned</span>
+                    </Button>
+                  )}
+                  {b.status === 'COMPLETED' && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Returned
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
             {hardwareBookings.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
                   No active or pending hardware rentals.
                 </td>
               </tr>

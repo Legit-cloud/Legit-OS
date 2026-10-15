@@ -5,10 +5,10 @@ import { prisma } from '../lib/prisma.js';
 import { publicUser } from '../lib/auth.js';
 import { badRequest, notFound } from '../lib/http.js';
 import { log } from '../lib/telemetry.js';
-import { disconnectUser, emitAll, emitToUser, emitToAdmins, notify, online, socketCount } from '../lib/realtime.js';
+import { disconnectUser, emitAll, emitToUser, emitToAdmins, notify, notifyAdmins, online, socketCount } from '../lib/realtime.js';
 import { awardPoints, settleInvoice } from '../lib/ledger.js';
 import { UPLOAD_DIR } from './finance.js';
-import { expireSessions } from './hub.js';
+import { expireSessions, UNIT_MS } from './hub.js';
 import { VEHICLES } from './transit.js';
 import { telemetryDb } from '../lib/telemetryDb.js';
 import { saveBroadcast, getBroadcastHistory, deleteBroadcast, type BroadcastEntry, type BroadcastType, type BroadcastSeverity, type BroadcastTarget } from '../lib/broadcasts.js';
@@ -355,20 +355,44 @@ const assetSchema = z.object({
   description: z.string().trim().max(240).default(''),
   price: z.coerce.number().min(0).max(100_000_000),
   unit: z.enum(['hour', 'day', 'month', 'item']),
+  totalCapacity: z.coerce.number().int().min(0).max(10_000).default(10),
   available: z.boolean().default(true),
   sortOrder: z.coerce.number().int().default(0),
 });
 
 adminRouter.get('/assets', async (_req, res) => {
   await expireSessions();
-  const [items, bookings] = await Promise.all([
-    prisma.catalogItem.findMany({ orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }] }),
+  const [rawItems, bookings] = await Promise.all([
+    prisma.catalogItem.findMany({
+      include: {
+        bookings: {
+          where: { status: { in: ['ACTIVE', 'CONFIRMED'] } },
+          select: { quantity: true },
+        },
+      },
+      orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
+    }),
     prisma.booking.findMany({
-      where: { status: { in: ['PENDING_PAYMENT', 'CONFIRMED', 'ACTIVE'] } },
+      where: { status: { in: ['PENDING_PAYMENT', 'CONFIRMED', 'ACTIVE', 'COMPLETED'] } },
       orderBy: { createdAt: 'desc' },
       include: { item: { select: { name: true, category: true } }, user: { select: { fullName: true } } },
     }),
   ]);
+
+  const items = rawItems.map((item) => {
+    const { bookings: itemBookings, ...rest } = item;
+    const maxCapacity = (item as any).totalCapacity ?? 10;
+    const bookedUnits = itemBookings.length;
+    const availableUnits = Math.max(0, maxCapacity - bookedUnits);
+    return {
+      ...rest,
+      totalCapacity: maxCapacity,
+      maxCapacity,
+      bookedUnits,
+      availableUnits,
+    };
+  });
+
   res.json({ items, bookings });
 });
 
@@ -411,6 +435,81 @@ adminRouter.patch('/bookings/:id', async (req, res) => {
   emitToUser(booking.userId, 'bookings:changed', null);
   emitToAdmins('queue:changed', null);
   res.json(booking);
+});
+
+adminRouter.post('/hardware/:id/handover', async (req, res) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id },
+    include: { item: true, user: true },
+  });
+  if (!booking) throw notFound('Booking');
+  if (booking.item.category !== 'HARDWARE') throw badRequest('Only hardware rentals can be handed over');
+  if (booking.status !== 'CONFIRMED') throw badRequest(`Booking cannot be handed over (Current status: ${booking.status})`);
+
+  const now = new Date();
+  const durationMs = booking.quantity * (UNIT_MS[booking.item.unit] ?? (24 * 3600e3));
+  const endsAt = new Date(now.getTime() + durationMs);
+
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: 'ACTIVE',
+      startsAt: now,
+      endsAt,
+    },
+    include: { item: true, user: true },
+  });
+
+  const dueStr = endsAt.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+  await log('ADMIN', `${actor(req)} handed over ${booking.item.name} to ${booking.user.fullName} (Due: ${dueStr})`, req.user!.id);
+  await notify(
+    booking.userId,
+    'Hardware Rental Active',
+    `Your workstation (${booking.item.name}) has been handed over. Return deadline is ${dueStr}.`
+  );
+  await notifyAdmins(
+    'Hardware Handover Confirmed',
+    `${booking.item.name} handed over to ${booking.user.fullName}. Due: ${dueStr}.`
+  );
+
+  emitToUser(booking.userId, 'bookings:changed', null);
+  emitToAdmins('queue:changed', null);
+  emitAll('catalog:changed', { action: 'update', id: booking.itemId });
+
+  res.json(updated);
+});
+
+adminRouter.post('/hardware/:id/return', async (req, res) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: req.params.id },
+    include: { item: true, user: true },
+  });
+  if (!booking) throw notFound('Booking');
+  if (booking.item.category !== 'HARDWARE') throw badRequest('Only hardware rentals can be returned');
+  if (booking.status !== 'ACTIVE') throw badRequest(`Booking is not active (Current status: ${booking.status})`);
+
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: { status: 'COMPLETED' },
+    include: { item: true, user: true },
+  });
+
+  await log('ADMIN', `${actor(req)} accepted return of ${booking.item.name} from ${booking.user.fullName}`, req.user!.id);
+  await notify(
+    booking.userId,
+    'Hardware Return Confirmed',
+    `Thank you! Your workstation (${booking.item.name}) has been received and checked in. Hope it powered your work well!`
+  );
+  await notifyAdmins(
+    'Hardware Returned',
+    `${booking.item.name} has been returned by ${booking.user.fullName} and returned to fleet.`
+  );
+
+  emitToUser(booking.userId, 'bookings:changed', null);
+  emitToAdmins('queue:changed', null);
+  emitAll('catalog:changed', { action: 'update', id: booking.itemId });
+
+  res.json(updated);
 });
 
 // ─── Academy courses & pricing ──────────────────────────────────────────────

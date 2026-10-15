@@ -50,7 +50,6 @@ function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }
             </div>
             <div className="mt-6 space-y-2">
               <Link to="/app/profile" onClick={onClose}><Button variant="outline" className="w-full">View full profile</Button></Link>
-              {user.role === 'ADMIN' && <Link to="/admin" onClick={onClose}><Button variant="outline" className="w-full">Open Admin Command Center</Button></Link>}
             </div>
             <Button variant="danger" className="mt-auto w-full" onClick={() => logout()}><LogOut className="h-4 w-4" /> Sign out</Button>
           </motion.aside>
@@ -89,23 +88,8 @@ export default function AppLayout() {
     <Shell
       nav={nav}
       title="L.E.G.I.T OS"
-      footer={
-        user.role === 'ADMIN' ? (
-          <Link to="/admin" className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-white/5 font-semibold">
-            <ShieldCheck className="h-4 w-4" /> Switch to Admin Center
-          </Link>
-        ) : undefined
-      }
       topRight={
         <>
-          {user.role === 'ADMIN' && (
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-cyan-500/20 hover:brightness-110"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" /> Admin Center
-            </Link>
-          )}
           <NotificationBell />
           <button onClick={() => setDrawer(true)} className="ml-1 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-200/60 dark:hover:bg-white/10" aria-label="Open profile">
             <Avatar name={user.fullName} size="sm" />

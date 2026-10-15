@@ -117,10 +117,11 @@ model CatalogItem {
   name        String
   description String    @default("")
   price       Float
-  unit        String // hour, day, month, item
-  available   Boolean   @default(true)
-  sortOrder   Int       @default(0)
-  bookings    Booking[]
+  unit          String // hour, day, month, item
+  totalCapacity Int       @default(10)
+  available     Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  bookings      Booking[]
 }
 
 model Booking {

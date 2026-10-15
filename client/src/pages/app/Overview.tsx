@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Clock, Flame, GraduationCap, Receipt, Timer, Trophy, Building2, Bike, Users } from 'lucide-react';
-import { Badge, Button, Card, PageHeader, StatCard } from '../../components/ui';
+import { ArrowRight, Clock, Flame, GraduationCap, Receipt, Timer, Trophy, Building2, Bike, Users, Laptop } from 'lucide-react';
+import { Badge, Button, Card, PageHeader, StatCard, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
-import { TZ, naira } from '../../lib/format';
+import { TZ, naira, formatDateTime } from '../../lib/format';
 import type { Booking, Course, Invoice, Notification } from '../../lib/types';
 import { useAuth } from '../../store/auth';
 import { toast } from '../../store/toast';
@@ -71,8 +71,27 @@ function TimeSync() {
 function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
   const qc = useQueryClient();
   const now = useNow();
-  const active = bookings.find((b) => b.status === 'ACTIVE' && b.endsAt && new Date(b.endsAt) > now);
+  const [selectedId, setSelectedId] = useState<string>('');
+
+  const active = bookings.find((b) => b.status === 'ACTIVE' && b.endsAt && new Date(b.endsAt) > now && ['DESK', 'FACILITY'].includes(b.item.category));
   const ready = bookings.filter((b) => b.status === 'CONFIRMED' && ['DESK', 'FACILITY'].includes(b.item.category));
+  const currentReady = ready.find((b) => b.id === selectedId) ?? ready[0];
+
+  const activeHardware = bookings.find((b) => b.status === 'ACTIVE' && b.endsAt && new Date(b.endsAt) > now && b.item.category === 'HARDWARE');
+  const readyHardware = bookings.find((b) => b.status === 'CONFIRMED' && b.item.category === 'HARDWARE');
+
+  const hasHardware = Boolean(activeHardware || readyHardware);
+  const hasWorkspace = Boolean(active || ready.length > 0);
+
+  const [tab, setTab] = useState<'workspace' | 'hardware'>('workspace');
+
+  useEffect(() => {
+    if (activeHardware && !active) {
+      setTab('hardware');
+    } else if (active && !activeHardware) {
+      setTab('workspace');
+    }
+  }, [activeHardware?.id, active?.id]);
 
   const checkIn = useMutation({
     mutationFn: (id: string) => api<Booking>(`/bookings/${id}/checkin`, { method: 'POST' }),
@@ -85,58 +104,335 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
 
   // Session ended while the page was open: refresh so it moves to COMPLETED.
   useEffect(() => {
-    if (!active?.endsAt) return;
-    const ms = new Date(active.endsAt).getTime() - Date.now();
+    const relevantEndsAt = tab === 'hardware' ? activeHardware?.endsAt : active?.endsAt;
+    if (!relevantEndsAt) return;
+    const ms = new Date(relevantEndsAt).getTime() - Date.now();
     const id = setTimeout(() => qc.invalidateQueries({ queryKey: ['bookings'] }), ms + 500);
     return () => clearTimeout(id);
-  }, [active?.endsAt, qc]);
+  }, [active?.endsAt, activeHardware?.endsAt, tab, qc]);
 
-  const R = 52;
+  const R = 46;
   const C = 2 * Math.PI * R;
+
+  // Workspace Desk progress
   let progress = 0;
   let label = '--:--:--';
   if (active?.startsAt && active.endsAt) {
     const total = new Date(active.endsAt).getTime() - new Date(active.startsAt).getTime();
     const left = Math.max(0, new Date(active.endsAt).getTime() - now.getTime());
-    progress = left / total;
+    progress = total > 0 ? left / total : 0;
     const h = Math.floor(left / 3600e3);
     const m = Math.floor((left % 3600e3) / 60e3);
     const s = Math.floor((left % 60e3) / 1000);
     label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
+  // Hardware Workstation progress
+  let hwProgress = 0;
+  let hwLabel = '--:--:--';
+  if (activeHardware?.startsAt && activeHardware.endsAt) {
+    const total = new Date(activeHardware.endsAt).getTime() - new Date(activeHardware.startsAt).getTime();
+    const left = Math.max(0, new Date(activeHardware.endsAt).getTime() - now.getTime());
+    hwProgress = total > 0 ? left / total : 0;
+    const d = Math.floor(left / (24 * 3600e3));
+    const h = Math.floor((left % (24 * 3600e3)) / 3600e3);
+    const m = Math.floor((left % 3600e3) / 60e3);
+    const s = Math.floor((left % 60e3) / 1000);
+    hwLabel = d > 0 ? `${d}d ${String(h).padStart(2, '0')}h` : `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
   return (
-    <Card>
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><Timer className="h-4 w-4 text-cyan-500" /> Workspace Timer</p>
-      <div className="mt-4 flex items-center gap-5">
-        <svg viewBox="0 0 120 120" className="h-32 w-32 shrink-0 -rotate-90">
-          <defs>
-            <linearGradient id="timer-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#22d3ee" /><stop offset="1" stopColor="#2563eb" /></linearGradient>
-          </defs>
-          <circle cx="60" cy="60" r={R} fill="none" strokeWidth="10" className="stroke-slate-200 dark:stroke-white/10" />
-          <circle cx="60" cy="60" r={R} fill="none" strokeWidth="10" stroke="url(#timer-grad)" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - progress)} style={{ transition: 'stroke-dashoffset 1s linear' }} />
-          <text x="60" y="64" textAnchor="middle" className="fill-current font-mono text-[13px] font-semibold" transform="rotate(90 60 60)">{label}</text>
-        </svg>
-        <div className="min-w-0 flex-1">
-          {active ? (
-            <>
-              <p className="font-display text-lg font-bold">{active.item.name}</p>
-              <p className="text-sm text-slate-500">Session ends {new Date(active.endsAt!).toLocaleTimeString('en-NG', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })}</p>
-              <Badge tone="cyan" className="mt-2">Active session</Badge>
-            </>
-          ) : ready.length ? (
-            <>
-              <p className="text-sm text-slate-500">Paid booking ready:</p>
-              <p className="font-semibold">{ready[0].item.name} · {ready[0].quantity} {ready[0].item.unit}(s)</p>
-              <Button size="sm" className="mt-3" loading={checkIn.isPending} onClick={() => checkIn.mutate(ready[0].id)}>Check in now</Button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-slate-500">No active workspace session.</p>
-              <Link to="/app/infra"><Button size="sm" variant="outline" className="mt-3">Book a desk</Button></Link>
-            </>
-          )}
+    <Card className="flex flex-col justify-between">
+      <div>
+        {hasHardware && hasWorkspace ? (
+          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-white/5 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setTab('workspace')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition',
+                tab === 'workspace'
+                  ? 'bg-white shadow-sm dark:bg-slate-800 text-cyan-600 dark:text-cyan-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              )}
+            >
+              <Timer className="h-3.5 w-3.5 shrink-0" />
+              <span>Workspace</span>
+              {active && <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('hardware')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition',
+                tab === 'hardware'
+                  ? 'bg-white shadow-sm dark:bg-slate-800 text-cyan-600 dark:text-cyan-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              )}
+            >
+              <Laptop className="h-3.5 w-3.5 shrink-0" />
+              <span>Workstation</span>
+              {activeHardware && <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />}
+              {readyHardware && !activeHardware && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            {hasHardware ? (
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <Laptop className="h-4 w-4 text-cyan-500 shrink-0" /> Workstation Timer
+              </p>
+            ) : (
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <Timer className="h-4 w-4 text-cyan-500 shrink-0" /> Workspace Timer
+              </p>
+            )}
+
+            {tab === 'hardware' ? (
+              activeHardware ? (
+                <span className="shrink-0 flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 whitespace-nowrap">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />
+                  Active
+                </span>
+              ) : readyHardware ? (
+                <span className="shrink-0 flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                  Ready
+                </span>
+              ) : null
+            ) : active ? (
+              <span className="shrink-0 flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />
+                Active
+              </span>
+            ) : ready.length > 0 ? (
+              <span className="shrink-0 flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                {ready.length} Ready
+              </span>
+            ) : null}
+          </div>
+        )}
+
+        {/* Timer display section */}
+        <div className="mt-4 flex items-center gap-4">
+          <svg viewBox="0 0 110 110" className="h-28 w-28 shrink-0 -rotate-90">
+            <defs>
+              <linearGradient id="timer-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#22d3ee" />
+                <stop offset="1" stopColor="#2563eb" />
+              </linearGradient>
+              <linearGradient id="hw-timer-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#a855f7" />
+                <stop offset="0.5" stopColor="#06b6d4" />
+                <stop offset="1" stopColor="#3b82f6" />
+              </linearGradient>
+            </defs>
+            <circle
+              cx="55"
+              cy="55"
+              r={R}
+              fill="none"
+              strokeWidth="7"
+              className="stroke-slate-100 dark:stroke-white/5"
+            />
+            <circle
+              cx="55"
+              cy="55"
+              r={R}
+              fill="none"
+              strokeWidth="7"
+              stroke={
+                tab === 'hardware'
+                  ? activeHardware
+                    ? 'url(#hw-timer-grad)'
+                    : 'transparent'
+                  : active
+                  ? 'url(#timer-grad)'
+                  : 'transparent'
+              }
+              strokeLinecap="round"
+              strokeDasharray={C}
+              strokeDashoffset={C * (1 - (tab === 'hardware' ? hwProgress : progress))}
+              style={{ transition: 'stroke-dashoffset 1s linear' }}
+            />
+            <text
+              x="55"
+              y="59"
+              textAnchor="middle"
+              className={cn(
+                'font-mono text-xs font-bold tabular-nums',
+                (tab === 'hardware' ? activeHardware : active)
+                  ? 'fill-cyan-600 dark:fill-cyan-400'
+                  : 'fill-slate-400'
+              )}
+              transform="rotate(90 55 55)"
+            >
+              {tab === 'hardware' ? hwLabel : label}
+            </text>
+          </svg>
+
+          <div className="min-w-0 flex-1">
+            {tab === 'hardware' ? (
+              activeHardware ? (
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shrink-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />
+                      Active Rental
+                    </span>
+                  </div>
+                  <p className="font-display text-base font-bold text-slate-900 dark:text-white truncate mt-1">
+                    {activeHardware.item.name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500 truncate">
+                    Return by {activeHardware.endsAt ? formatDateTime(activeHardware.endsAt) : 'Pending'}
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-medium text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                    <Laptop className="h-3.5 w-3.5 shrink-0" /> In your possession
+                  </p>
+                </div>
+              ) : readyHardware ? (
+                <div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                    Awaiting Pickup
+                  </span>
+                  <p className="font-display text-base font-bold text-slate-900 dark:text-white truncate mt-1">
+                    {readyHardware.item.name}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Duration: {readyHardware.quantity} {readyHardware.item.unit}{readyHardware.quantity > 1 ? 's' : ''}
+                  </p>
+                  <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                    Collect at front desk to start timer
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+                    No active workstation
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 leading-normal">
+                    Rent high-performance laptops & PCs under Infrastructure.
+                  </p>
+                </div>
+              )
+            ) : active ? (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shrink-0">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping shrink-0" />
+                    Active Session
+                  </span>
+                </div>
+                <p className="font-display text-base font-bold text-slate-900 dark:text-white truncate mt-1">
+                  {active.item.name}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 truncate">
+                  Ends at {new Date(active.endsAt!).toLocaleTimeString('en-NG', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p className="mt-1.5 text-[11px] font-medium text-cyan-600 dark:text-cyan-400">
+                  Session currently in progress
+                </p>
+              </div>
+            ) : currentReady ? (
+              <div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  Ready to Start
+                </span>
+                <p className="font-display text-base font-bold text-slate-900 dark:text-white truncate mt-1">
+                  {currentReady.item.name}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Duration: {currentReady.quantity} {currentReady.item.unit}{currentReady.quantity > 1 ? 's' : ''}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+                  No active session
+                </p>
+                <p className="mt-1 text-xs text-slate-500 leading-normal">
+                  Book a desk or private facility to start working.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Action / Selection Footer Area */}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+        {tab === 'hardware' ? (
+          activeHardware ? (
+            <p className="text-xs text-slate-400 text-center">
+              Please return device to reception before your timer concludes.
+            </p>
+          ) : readyHardware ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
+              Present your reservation to reception to collect device.
+            </p>
+          ) : (
+            <Link to="/app/infra" className="block">
+              <Button variant="outline" size="sm" className="w-full">
+                Rent a workstation
+              </Button>
+            </Link>
+          )
+        ) : active ? (
+          <div>
+            {ready.length > 0 ? (
+              <p className="text-xs text-slate-500 text-center">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{ready.length} other session{ready.length > 1 ? 's' : ''}</span> queued after this.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 text-center">
+                Timer will automatically conclude when time expires.
+              </p>
+            )}
+          </div>
+        ) : ready.length > 1 ? (
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-600 dark:text-slate-400">Choose session to start:</span>
+              <span className="text-slate-400 font-mono text-[11px]">{ready.length} ready</span>
+            </div>
+            <select
+              className="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-white/10 dark:bg-slate-900/90 dark:text-slate-100"
+              value={currentReady?.id}
+              onChange={(e) => setSelectedId(e.target.value)}
+            >
+              {ready.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.item.name} ({b.quantity} {b.item.unit}{b.quantity > 1 ? 's' : ''})
+                </option>
+              ))}
+            </select>
+            <Button
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20"
+              loading={checkIn.isPending}
+              onClick={() => currentReady && checkIn.mutate(currentReady.id)}
+            >
+              Check in to {currentReady?.item.name}
+            </Button>
+          </div>
+        ) : ready.length === 1 ? (
+          <Button
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20"
+            loading={checkIn.isPending}
+            onClick={() => checkIn.mutate(ready[0].id)}
+          >
+            Check in now ({ready[0].quantity} {ready[0].item.unit})
+          </Button>
+        ) : (
+          <Link to="/app/infra" className="block">
+            <Button variant="outline" size="sm" className="w-full">
+              Book a workspace
+            </Button>
+          </Link>
+        )}
       </div>
     </Card>
   );
@@ -156,6 +452,9 @@ export default function Overview() {
   const outstanding = finance.data?.invoices.filter((i) => i.status === 'PENDING') ?? [];
   const enrolled = courses.data?.filter((c) => c.hasAccess) ?? [];
   const unreadNotifs = notifQuery.data?.unread ?? 0;
+  const activeHardware = (bookings.data ?? []).filter(
+    (b) => ['CONFIRMED', 'ACTIVE'].includes(b.status) && b.item.category === 'HARDWARE'
+  );
   const hour = Number(new Date().toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }));
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -183,6 +482,50 @@ export default function Overview() {
           </Link>
         </div>
       )}
+
+      {activeHardware.map((hw) => (
+        <div
+          key={hw.id}
+          className={cn(
+            'mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-3xl border p-4 sm:px-5 sm:py-3.5 shadow-sm overflow-hidden',
+            hw.status === 'CONFIRMED'
+              ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent'
+              : 'border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent'
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <span
+              className={cn(
+                'shrink-0 rounded-2xl p-2.5',
+                hw.status === 'CONFIRMED'
+                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                  : 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+              )}
+            >
+              <Laptop className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                {hw.status === 'CONFIRMED'
+                  ? `Workstation Reserved: ${hw.item.name} (${hw.quantity} ${hw.item.unit}${hw.quantity > 1 ? 's' : ''})`
+                  : `Workstation in Use: ${hw.item.name}`}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                {hw.status === 'CONFIRMED'
+                  ? 'Ready for pickup! Please visit the hub reception desk to collect your workstation.'
+                  : `In your possession · Return deadline: ${hw.endsAt ? formatDateTime(hw.endsAt) : 'Pending'}`}
+              </p>
+            </div>
+          </div>
+          <Badge
+            tone={hw.status === 'CONFIRMED' ? 'amber' : 'cyan'}
+            className="shrink-0 self-start md:self-auto whitespace-nowrap"
+          >
+            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', hw.status === 'CONFIRMED' ? 'bg-amber-500' : 'bg-cyan-500 animate-ping')} />
+            {hw.status === 'CONFIRMED' ? 'Ready for Pickup' : 'Active Rental'}
+          </Badge>
+        </div>
+      ))}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <TimeSync />
