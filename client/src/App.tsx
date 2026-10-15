@@ -46,6 +46,7 @@ function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode
   }
   if (admin && user.role !== 'ADMIN') return <Navigate to="/admin/login?error=unauthorized" replace />;
   if (!admin && user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+  if (!admin && user.status !== 'ACTIVE') return <Navigate to="/register?pending=1" replace />;
   return <>{children}</>;
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2, ExternalLink, FileText, Inbox, UtensilsCrossed, XCircle,
-  Laptop, Calendar, Bike, GraduationCap, RefreshCw
+  Laptop, Calendar, Bike, GraduationCap, RefreshCw, ShieldCheck
 } from 'lucide-react';
 import {
   Badge, Button, Card, Empty, Field, Loading, Modal, PageHeader, StatusBadge, Tabs
@@ -12,6 +12,18 @@ import { formatDateTime, naira, timeAgo } from '../../lib/format';
 import { useSocketEvent } from '../../lib/socket';
 import type { Invoice, LoungeOrder, PaymentProof, Category } from '../../lib/types';
 import { toast } from '../../store/toast';
+
+type QueueVerification = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  idType: string | null;
+  idDocument: string | null;
+  facePicture: string | null;
+  status: string;
+  createdAt: string;
+};
 
 type QueueProof = PaymentProof & {
   receiptType: string;
@@ -92,6 +104,7 @@ interface QueueData {
   bookings?: QueueBooking[];
   enrollments?: QueueEnrollment[];
   rides?: QueueRide[];
+  pendingVerifications?: QueueVerification[];
 }
 
 function Receipt({ proof }: { proof: QueueProof }) {
@@ -127,9 +140,11 @@ function Receipt({ proof }: { proof: QueueProof }) {
 
 export default function ActionQueue() {
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'proofs' | 'orders' | 'bookings' | 'courses' | 'rides' | 'reviewed'>('proofs');
+  const [activeTab, setActiveTab] = useState<'verifications' | 'proofs' | 'orders' | 'bookings' | 'courses' | 'rides' | 'reviewed'>('verifications');
   const [rejecting, setRejecting] = useState<QueueProof | null>(null);
   const [reason, setReason] = useState('');
+  const [rejectingUser, setRejectingUser] = useState<QueueVerification | null>(null);
+  const [rejectUserReason, setRejectUserReason] = useState('ID document was unclear or does not match face photo.');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'queue'],
@@ -143,6 +158,27 @@ export default function ActionQueue() {
   useSocketEvent('queue:changed', () => {
     refresh();
     toast.info('New activity in queue', 'An order, booking or payment proof was submitted.');
+  });
+
+  const approveUser = useMutation({
+    mutationFn: (id: string) => api(`/admin/users/${id}/approve`, { method: 'POST', body: {} }),
+    onSuccess: () => {
+      toast.success('Member Approved', 'Account activated and confirmation email sent.');
+      refresh();
+    },
+    onError: (e) => toast.error('Approval failed', errorMessage(e)),
+  });
+
+  const rejectUser = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api(`/admin/users/${id}/reject`, { method: 'POST', body: { reason } }),
+    onSuccess: () => {
+      toast.info('Member Verification Rejected', 'Member status updated and email sent.');
+      setRejectingUser(null);
+      setRejectUserReason('ID document was unclear or does not match face photo.');
+      refresh();
+    },
+    onError: (e) => toast.error('Rejection failed', errorMessage(e)),
   });
 
   const approve = useMutation({
@@ -186,6 +222,7 @@ export default function ActionQueue() {
 
   if (isLoading || !data) return <Loading label="Loading action queue…" />;
 
+  const verifications = data.pendingVerifications ?? [];
   const proofs = data.proofs ?? [];
   const orders = data.orders ?? [];
   const bookings = data.bookings ?? [];
@@ -194,6 +231,7 @@ export default function ActionQueue() {
   const reviewed = data.reviewed ?? [];
 
   const tabOptions = [
+    { value: 'verifications' as const, label: `Member Verifications (${verifications.length})` },
     { value: 'proofs' as const, label: `Payment Proofs (${proofs.length})` },
     { value: 'orders' as const, label: `Lounge Orders (${orders.length})` },
     { value: 'bookings' as const, label: `Bookings & Hardware (${bookings.length})` },
@@ -207,7 +245,7 @@ export default function ActionQueue() {
       <PageHeader
         eyebrow="Order & Payment Response Center"
         title="Action Queue"
-        subtitle="Review, approve, and respond to member payments, lounge food orders, hardware rentals, desk bookings, and course enrollments."
+        subtitle="Review, approve, and respond to member registrations, payments, lounge food orders, hardware rentals, desk bookings, and course enrollments."
         actions={
           <Button variant="outline" size="sm" onClick={refresh}>
             <RefreshCw className="h-4 w-4" /> Refresh
@@ -218,6 +256,90 @@ export default function ActionQueue() {
       <Tabs value={activeTab} onChange={setActiveTab} options={tabOptions} />
 
       <div className="mt-6">
+        {/* MEMBER VERIFICATIONS TAB */}
+        {activeTab === 'verifications' && (
+          <div>
+            {verifications.length === 0 ? (
+              <Card>
+                <Empty
+                  icon={<ShieldCheck className="h-10 w-10 text-slate-400" />}
+                  title="No pending identity verifications"
+                  hint="New member applications with uploaded ID documents and biometric face scans will appear here."
+                />
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                {verifications.map((v) => (
+                  <Card key={v.id} className="flex flex-col justify-between border-cyan-500/20">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-display text-lg font-bold text-slate-900 dark:text-white">{v.fullName}</p>
+                          <p className="text-xs text-slate-500">{v.email} {v.phone && `· ${v.phone}`}</p>
+                        </div>
+                        <Badge tone="cyan">{v.idType || 'NIN'}</Badge>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Government ID Document
+                          </p>
+                          {v.idDocument ? (
+                            <a href={v.idDocument} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/40">
+                              <img src={v.idDocument} alt={`ID of ${v.fullName}`} className="h-44 w-full object-cover group-hover:scale-105 transition-transform" />
+                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium">Click to inspect</span>
+                            </a>
+                          ) : (
+                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                              No document
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Live Biometric Selfie
+                          </p>
+                          {v.facePicture ? (
+                            <a href={v.facePicture} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/40">
+                              <img src={v.facePicture} alt={`Selfie of ${v.fullName}`} className="h-44 w-full object-cover group-hover:scale-105 transition-transform" />
+                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium">Click to inspect</span>
+                            </a>
+                          ) : (
+                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                              No face snapshot
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-xs text-slate-400">Application submitted {timeAgo(v.createdAt)}</p>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-white/10">
+                      <Button
+                        variant="success"
+                        size="sm"
+                        loading={approveUser.isPending && approveUser.variables === v.id}
+                        onClick={() => approveUser.mutate(v.id)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1.5" /> Approve & Activate
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setRejectingUser(v)}
+                      >
+                        <XCircle className="h-4 w-4 mr-1.5" /> Reject ID
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {/* PAYMENT PROOFS TAB */}
         {activeTab === 'proofs' && (
           <div>
@@ -521,6 +643,32 @@ export default function ActionQueue() {
           </Field>
           <Button type="submit" variant="danger" className="w-full" loading={reject.isPending}>
             Reject proof
+          </Button>
+        </form>
+      </Modal>
+
+      {/* Reject User Verification Modal */}
+      <Modal open={!!rejectingUser} onClose={() => setRejectingUser(null)} title="Reject identity verification">
+        <p className="text-sm text-slate-500">{rejectingUser?.fullName} ({rejectingUser?.email})</p>
+        <form
+          className="mt-4 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (rejectingUser) rejectUser.mutate({ id: rejectingUser.id, reason: rejectUserReason });
+          }}
+        >
+          <Field label="Rejection reason (sent to applicant via email)">
+            <textarea
+              className="field min-h-24"
+              required
+              minLength={3}
+              value={rejectUserReason}
+              onChange={(e) => setRejectUserReason(e.target.value)}
+              placeholder="e.g. ID photo is blurry, name does not match, or live face snapshot does not match ID."
+            />
+          </Field>
+          <Button type="submit" variant="danger" className="w-full" loading={rejectUser.isPending}>
+            Confirm Rejection
           </Button>
         </form>
       </Modal>

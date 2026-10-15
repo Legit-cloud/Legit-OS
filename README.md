@@ -15,19 +15,59 @@ Express 5 + Socket.io · Prisma + SQLite · JWT auth with USER / ADMIN roles · 
 
 ## Key Features & Recent Updates
 
+- **End-to-End Member Onboarding & KYC Verification Pipeline (`/register`):**
+  - **Step 1 — Credentials Submission:** Full Name, Email, Phone, and Password validation.
+  - **Step 2 — Email OTP Verification:** Automated 6-digit numeric OTP generation with 10-minute expiration via **Resend Email API**.
+  - **Step 3 — Official ID Document Upload:** Supports National ID (NIN Slip/Card), Driver's License, International Passport, Voter's Card (PVC), and Student/Work ID.
+  - **Step 4 — Live Biometric Face Capture:**
+    - Real-time webcam viewfinder embedded directly in an interactive biometric framing reticle.
+    - True horizontal mirror reflection (`transform: scaleX(-1)`) with animated laser-scanning line and HUD corner brackets.
+    - Strict cross-browser autoplay compliance (`muted`, `defaultMuted`, `playsInline` DOM property enforcement).
+    - Resilient hardware constraint fallbacks (`facingMode: 'user'` gracefully falls back to any available webcam).
+    - High-quality snapshot generation via offscreen canvas, preserving orientation and resolution.
+    - Built-in photo upload fallback for devices without camera hardware or with blocked permissions.
+  - **Step 5 — Application Review & Live Status Tracking:**
+    - **Under Review:** Live status screen with auto-polling (`/api/auth/me`) and Socket.io real-time push events (`profile:changed`).
+    - **Approval Celebration:** Instant animated unlocking screen and automated redirection to `/app` upon admin approval.
+    - **Dedicated Rejection & Document Revision:** Clear, dedicated rejection interface displaying the reviewer's specific feedback, thumbnails of previous uploads, and a one-click **"Re-upload Documents & Retake Photo"** action.
+    - **Re-application Support:** Rejected accounts are never locked out permanently; applicants can re-submit revised documents while signed in or register afresh with the same email.
+
+- **Transactional Email Infrastructure (Resend API):**
+  - Production-ready transactional email engine (`server/src/lib/email.ts`) powered by the official `resend` SDK.
+  - Dynamic environment variable resolution and instant error propagation.
+  - Custom HTML email templates for:
+    1. Member Email OTP Verification (`sendOtpEmail`)
+    2. Verification Application Receipt (`sendApplicationSubmittedEmail`)
+    3. Account Approval & Facility Activation (`sendApprovalEmail`)
+    4. Identity Rejection & Revision Feedback (`sendRejectionEmail`)
+
+- **Admin Verification Operations Desk:**
+  - **Action Queue (`/admin` → Action Queue → Member Verifications):**
+    - Side-by-side card preview of uploaded ID documents and live face snapshots.
+    - One-click `[ Approve & Activate ]` settling account status to `ACTIVE`, marking `verified: true`, dispatching approval email, and notifying the applicant in real time.
+    - `[ Reject ID ]` modal with customizable feedback note, status transition to `REJECTED`, and automated revision email dispatch.
+  - **User Directory (`/admin` → User Directory):** Member profile drawer with identity document inspection desk and verification audit history.
+
+- **Strict Access Control & Guarding:**
+  - Client-side `RequireAuth` guard in `App.tsx` strictly routes non-active members (`status !== 'ACTIVE'`) to the verification desk, protecting `/app` workspace surfaces.
+  - Server-side login guards blocking non-active accounts with descriptive, actionable error responses.
+
 - **Real-Time Broadcast & Notification Engine:**
   - Administrators can dispatch hub-wide announcements directly via `/admin/broadcast` with urgency tiers (`low`, `medium`, `high`, `critical`), targeted audiences, and display modes (ticker marquee, pop-up modal, banner).
   - Real-time client delivery through `BroadcastReceiver` and dedicated member `/app/notifications` inbox.
+
 - **Dedicated Admin Authentication:**
   - Isolated `/admin/login` interface with automated redirection, role verification guards (`RequireAuth admin`), and token validation.
+
 - **Hardware & Device Rentals:**
   - Dedicated administrative inventory management (`/admin/hardware`) for laptops and hub hardware with checkout, maintenance, and return tracking.
+
 - **Course & Curriculum Management:**
   - `/admin/courses` management suite for creating academy tracks, modules, pricing, and enrollment states.
-- **Enhanced Registration & Onboarding:**
-  - Identity verification with document upload and browser-based camera facial capture on registration.
+
 - **Collapsible Responsive Navigation:**
   - Dynamic collapsible sidebar across dashboard layouts with smooth micro-animations.
+
 - **Telemetry & Scalability:**
   - Real-time platform monitoring dashboard (`/admin/telemetry`) and Redis Socket.io adapter support for multi-instance deployments.
 
@@ -104,6 +144,7 @@ client/src/
 
 ## Things to configure before launch
 
+- **Resend Email API:** Set `RESEND_API_KEY` in `server/.env`. For production, add your custom domain in Resend (`resend.com/domains`) and configure `RESEND_FROM_EMAIL="L.E.G.I.T Innovation Hub <notifications@legitinnovationhub.com>"` to send transactional emails to any user.
 - Prices that were not in the brief are **placeholders**: hot desk, day pass, CC HUB/GATEWAY, J.B.C,
   hardware rentals, Munchkins and soft drinks. Edit them in **Admin → Hub Assets**.
 - Transit fares (`server/src/routes/transit.ts`) are flat estimates: Bike ₦1,500, Keke ₦2,000, Cab ₦4,500.

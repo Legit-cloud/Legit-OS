@@ -1,6 +1,6 @@
 export type Role = 'USER' | 'ADMIN';
 export type Tier = 'PAY_AS_YOU_GO' | 'PRO_MONTHLY' | 'VIP';
-export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+export type AccountStatus = 'ACTIVE' | 'PENDING_VERIFICATION' | 'REJECTED' | 'SUSPENDED' | 'BANNED';
 
 export interface User {
   id: string;
@@ -12,6 +12,11 @@ export interface User {
   tier: Tier;
   status: AccountStatus;
   verified: boolean;
+  idDocument?: string | null;
+  idType?: string | null;
+  facePicture?: string | null;
+  verificationNote?: string | null;
+  verifiedAt?: string | null;
   points: number;
   streakDays: number;
   badge: string;

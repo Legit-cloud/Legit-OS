@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Minus, Plus, Search, ShieldCheck, ShieldOff, UserCog } from 'lucide-react';
+import { Ban, Check, Minus, Plus, Search, ShieldCheck, ShieldOff, UserCog, X } from 'lucide-react';
 import { Avatar, Badge, Button, Card, Field, Loading, Modal, PageHeader, StatusBadge } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { formatDate, naira, tierLabel } from '../../lib/format';
@@ -37,6 +37,24 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
     onError: (e) => toast.error('Update failed', errorMessage(e)),
   });
 
+  const approveVerification = useMutation({
+    mutationFn: () => api<{ ok: boolean; user: User }>(`/admin/users/${id}/approve`, { method: 'POST', body: {} }),
+    onSuccess: () => {
+      toast.success('Identity Approved', 'Member marked as active and verified. Confirmation email sent.');
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+    onError: (e) => toast.error('Approval failed', errorMessage(e)),
+  });
+
+  const rejectVerification = useMutation({
+    mutationFn: (reason: string) => api<{ ok: boolean; user: User }>(`/admin/users/${id}/reject`, { method: 'POST', body: { reason } }),
+    onSuccess: () => {
+      toast.info('Verification Rejected', 'Member status set to REJECTED and email sent.');
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+    onError: (e) => toast.error('Rejection failed', errorMessage(e)),
+  });
+
   if (isLoading || !u) return <Loading />;
   const self = u.id === me.id;
 
@@ -55,6 +73,85 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         </div>
       </div>
+
+      {(u.idDocument || u.facePicture || u.status === 'PENDING_VERIFICATION') && (
+        <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm flex items-center gap-1.5 text-slate-900 dark:text-white">
+                <ShieldCheck className="h-4 w-4 text-cyan-500" />
+                Identity & Biometric Verification Desk
+              </p>
+              <p className="text-xs text-slate-500">
+                Document Type: <span className="font-semibold text-slate-700 dark:text-slate-300">{u.idType || 'Government ID (NIN)'}</span>
+              </p>
+            </div>
+            <StatusBadge status={u.status} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <span className="text-[11px] font-semibold uppercase text-slate-400 block mb-1">
+                Uploaded ID Document
+              </span>
+              {u.idDocument ? (
+                <a href={u.idDocument} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                  <img src={u.idDocument} alt="ID Document" className="h-36 w-full object-cover group-hover:scale-105 transition-transform" />
+                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">View full</span>
+                </a>
+              ) : (
+                <div className="h-36 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                  No ID uploaded
+                </div>
+              )}
+            </div>
+
+            <div>
+              <span className="text-[11px] font-semibold uppercase text-slate-400 block mb-1">
+                Live Face Capture
+              </span>
+              {u.facePicture ? (
+                <a href={u.facePicture} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                  <img src={u.facePicture} alt="Face Snapshot" className="h-36 w-full object-cover group-hover:scale-105 transition-transform" />
+                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">View full</span>
+                </a>
+              ) : (
+                <div className="h-36 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                  No face snapshot
+                </div>
+              )}
+            </div>
+          </div>
+
+          {u.verificationNote && (
+            <p className="text-xs text-rose-500 bg-rose-500/10 p-2 rounded-lg">
+              <strong>Previous Rejection Note:</strong> {u.verificationNote}
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="success"
+              loading={approveVerification.isPending}
+              onClick={() => approveVerification.mutate()}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> Approve & Activate Member
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              loading={rejectVerification.isPending}
+              onClick={() => {
+                const note = prompt('Reason for rejection (will be emailed to the member):', 'ID document is blurry or does not match face photo.');
+                if (note !== null) rejectVerification.mutate(note);
+              }}
+            >
+              <X className="h-3.5 w-3.5 mr-1" /> Reject Verification
+            </Button>
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Field label="Full name"><input className="field" value={edit.fullName} onChange={(e) => setEdit({ ...edit, fullName: e.target.value })} /></Field>

@@ -20,27 +20,34 @@ enum SubscriptionTier {
 
 enum AccountStatus {
   ACTIVE
+  PENDING_VERIFICATION
+  REJECTED
   SUSPENDED
   BANNED
 }
 
 model User {
-  id           String           @id @default(uuid())
-  fullName     String
-  email        String           @unique
-  passwordHash String
-  phone        String?
-  bio          String?
-  role         Role             @default(USER)
-  tier         SubscriptionTier @default(PAY_AS_YOU_GO)
-  status       AccountStatus    @default(ACTIVE)
-  verified     Boolean          @default(false)
-  points       Int              @default(0)
-  streakDays   Int              @default(0)
-  lastActiveAt DateTime?
-  badge        String           @default("New Member")
-  planRenewsAt DateTime?
-  createdAt    DateTime         @default(now())
+  id               String           @id @default(uuid())
+  fullName         String
+  email            String           @unique
+  passwordHash     String
+  phone            String?
+  bio              String?
+  role             Role             @default(USER)
+  tier             SubscriptionTier @default(PAY_AS_YOU_GO)
+  status           AccountStatus    @default(ACTIVE)
+  verified         Boolean          @default(false)
+  idDocument       String?
+  idType           String?
+  facePicture      String?
+  verificationNote String?
+  verifiedAt       DateTime?
+  points           Int              @default(0)
+  streakDays       Int              @default(0)
+  lastActiveAt     DateTime?
+  badge            String           @default("New Member")
+  planRenewsAt     DateTime?
+  createdAt        DateTime         @default(now())
 
   payments      PaymentProof[]
   invoices      Invoice[]
@@ -51,6 +58,14 @@ model User {
   transitRides  TransitRequest[]
   rsvps         EventRsvp[]
   notifications Notification[]
+}
+
+model EmailOtp {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // Every charge in the system is an invoice. Approving a payment proof marks

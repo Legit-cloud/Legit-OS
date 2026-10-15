@@ -12,6 +12,7 @@ import { expireSessions, UNIT_MS } from './hub.js';
 import { VEHICLES } from './transit.js';
 import { telemetryDb } from '../lib/telemetryDb.js';
 import { saveBroadcast, getBroadcastHistory, deleteBroadcast, type BroadcastEntry, type BroadcastType, type BroadcastSeverity, type BroadcastTarget } from '../lib/broadcasts.js';
+import { sendApprovalEmail, sendRejectionEmail } from '../lib/email.js';
 import crypto from 'node:crypto';
 
 export const adminRouter = Router();
@@ -197,8 +198,9 @@ const userPatch = z.object({
   phone: z.string().trim().max(30).nullable().optional(),
   role: z.enum(['USER', 'ADMIN']).optional(),
   tier: z.enum(['PAY_AS_YOU_GO', 'PRO_MONTHLY', 'VIP']).optional(),
-  status: z.enum(['ACTIVE', 'SUSPENDED', 'BANNED']).optional(),
+  status: z.enum(['ACTIVE', 'PENDING_VERIFICATION', 'REJECTED', 'SUSPENDED', 'BANNED']).optional(),
   verified: z.boolean().optional(),
+  verificationNote: z.string().nullable().optional(),
   pointsDelta: z.number().int().min(-100000).max(100000).optional(),
 });
 
@@ -213,7 +215,7 @@ adminRouter.patch('/users/:id', async (req, res) => {
     throw badRequest('That email is already in use');
   }
 
-  await prisma.user.update({ where: { id: target.id }, data });
+  await prisma.user.update({ where: { id: target.id }, data: data as any });
   if (pointsDelta) {
     const floor = -target.points; // never let a balance go negative
     await awardPoints(target.id, Math.max(pointsDelta, floor));
@@ -233,10 +235,64 @@ adminRouter.patch('/users/:id', async (req, res) => {
   res.json(publicUser(updated));
 });
 
+adminRouter.post('/users/:id/approve', async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) throw notFound('User');
+
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      status: 'ACTIVE',
+      verified: true,
+      verifiedAt: new Date(),
+      verificationNote: null,
+    } as any,
+  });
+
+  await sendApprovalEmail(target.email, target.fullName).catch((err) => {
+    console.error('Failed to send approval email:', err);
+  });
+
+  await notify(target.id, 'Account Approved', 'Your identity verification was approved! Welcome to L.E.G.I.T Innovation Hub.');
+  emitToUser(target.id, 'profile:changed', null);
+  await log('ADMIN', `${actor(req)} approved identity verification for ${target.fullName} <${target.email}>`, req.user!.id);
+
+  res.json({ ok: true, user: publicUser(updated) });
+});
+
+const rejectSchema = z.object({
+  reason: z.string().trim().default('ID or live face picture did not meet quality/security guidelines.'),
+});
+
+adminRouter.post('/users/:id/reject', async (req, res) => {
+  const { reason } = rejectSchema.parse(req.body);
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) throw notFound('User');
+
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      status: 'REJECTED',
+      verified: false,
+      verificationNote: reason,
+    } as any,
+  });
+
+  await sendRejectionEmail(target.email, target.fullName, reason).catch((err) => {
+    console.error('Failed to send rejection email:', err);
+  });
+
+  await notify(target.id, 'Verification Rejected', `Your identity verification was rejected: ${reason}`);
+  emitToUser(target.id, 'profile:changed', null);
+  await log('ADMIN', `${actor(req)} rejected verification for ${target.fullName}: ${reason}`, req.user!.id);
+
+  res.json({ ok: true, user: publicUser(updated) });
+});
+
 // ─── Action queue: payment proofs & lounge orders ──────────────────────────
 
 adminRouter.get('/queue', async (_req, res) => {
-  const [proofs, orders, reviewed, bookings, enrollments, rides] = await Promise.all([
+  const [proofs, orders, reviewed, bookings, enrollments, rides, pendingVerifications] = await Promise.all([
     prisma.paymentProof.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
@@ -279,6 +335,21 @@ adminRouter.get('/queue', async (_req, res) => {
         rider: { select: { id: true, name: true, phone: true } },
       },
     }),
+    prisma.user.findMany({
+      where: { status: 'PENDING_VERIFICATION' as any },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        idType: true,
+        idDocument: true,
+        facePicture: true,
+        status: true,
+        createdAt: true,
+      } as any,
+    }),
   ]);
   const strip = <T extends { receiptUrl: string }>({ receiptUrl, ...p }: T) => ({ ...p, receiptType: path.extname(receiptUrl) });
   res.json({
@@ -288,6 +359,7 @@ adminRouter.get('/queue', async (_req, res) => {
     bookings,
     enrollments,
     rides,
+    pendingVerifications,
   });
 });
 

@@ -45,7 +45,7 @@ communityRouter.get('/network/members', async (req, res) => {
     orderBy: { fullName: 'asc' },
     take: 100,
   });
-  res.json(members.map((m) => ({ ...m, online: online.has(m.id) })));
+  res.json(members.map((m: any) => ({ ...m, online: online.has(m.id) })));
 });
 
 communityRouter.get('/network/messages', async (req, res) => {

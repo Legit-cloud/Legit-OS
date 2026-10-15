@@ -28,7 +28,9 @@ export async function userFromToken(token: string | undefined): Promise<User> {
   }
   const user = await prisma.user.findUnique({ where: { id: sub } });
   if (!user) throw new HttpError(401, 'Account no longer exists');
-  if (user.status !== 'ACTIVE') throw new HttpError(403, `Account ${user.status.toLowerCase()}`);
+  if (['SUSPENDED', 'BANNED'].includes(user.status)) {
+    throw new HttpError(403, `Account ${user.status.toLowerCase()}`);
+  }
   return user;
 }
 
