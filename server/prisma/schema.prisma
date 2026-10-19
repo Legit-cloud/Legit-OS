@@ -29,6 +29,7 @@ enum AccountStatus {
 model User {
   id               String           @id @default(uuid())
   fullName         String
+  username         String?          @unique
   email            String           @unique
   passwordHash     String
   phone            String?
@@ -257,4 +258,25 @@ model NewsletterSubscriber {
   id        String   @id @default(uuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+enum AdminInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+model AdminInvite {
+  id        String            @id @default(uuid())
+  email     String
+  fullName  String
+  token     String            @unique
+  invitedBy String
+  status    AdminInviteStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+
+  @@index([email])
+  @@index([token])
 }

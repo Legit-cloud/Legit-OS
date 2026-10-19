@@ -31,10 +31,10 @@ async function main() {
 
   const hash = (pw: string) => bcrypt.hashSync(pw, 10);
   const admin = await prisma.user.create({
-    data: { fullName: 'Hub Administrator', email: 'admin@legithub.com', passwordHash: hash('Admin@12345'), role: 'ADMIN', tier: 'VIP', verified: true, badge: 'Hub Legend', points: 1200 },
+    data: { fullName: 'Hub Administrator', username: 'admin', email: 'admin@legithub.com', passwordHash: hash('Admin@12345'), role: 'ADMIN', tier: 'VIP', verified: true, badge: 'Hub Legend', points: 1200 },
   });
   const demo = await prisma.user.create({
-    data: { fullName: 'Ada Innovator', email: 'demo@legithub.com', passwordHash: hash('Demo@12345'), phone: '+234 801 234 5678', points: 120, streakDays: 3, lastActiveAt: days(-1) },
+    data: { fullName: 'Ada Innovator', username: 'ada-innovator', email: 'demo@legithub.com', passwordHash: hash('Demo@12345'), phone: '+234 801 234 5678', points: 120, streakDays: 3, lastActiveAt: days(-1) },
   });
   const members = await Promise.all(
     [
@@ -47,6 +47,7 @@ async function main() {
       prisma.user.create({
         data: {
           fullName: fullName as string,
+          username: (fullName as string).toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
           email: `${(fullName as string).split(' ')[0].toLowerCase()}@example.com`,
           passwordHash: hash('Member@12345'),
           tier: tier as 'PAY_AS_YOU_GO',

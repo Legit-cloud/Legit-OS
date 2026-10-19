@@ -32,6 +32,7 @@ const Comms = lazy(() => import('./pages/admin/Comms'));
 const BroadcastCenter = lazy(() => import('./pages/admin/BroadcastCenter'));
 const Telemetry = lazy(() => import('./pages/admin/Telemetry'));
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AcceptAdminInvite = lazy(() => import('./pages/admin/AcceptAdminInvite'));
 
 function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode }) {
   const { token, user } = useAuth();
@@ -45,9 +46,17 @@ function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode
     return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
   if (admin && user.role !== 'ADMIN') return <Navigate to="/admin/login?error=unauthorized" replace />;
-  if (!admin && user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+  if (!admin && user.role === 'ADMIN') return <Navigate to={`/admin/${user.username || 'admin'}`} replace />;
   if (!admin && user.status !== 'ACTIVE') return <Navigate to="/register?pending=1" replace />;
   return <>{children}</>;
+}
+
+function AdminRedirect() {
+  const { user } = useAuth();
+  const location = useLocation();
+  const username = user?.username || 'admin';
+  const sub = location.pathname.replace(/^\/admin\/?/, '');
+  return <Navigate to={`/admin/${username}${sub ? `/${sub}` : ''}`} replace />;
 }
 
 function NotFound() {
@@ -70,6 +79,7 @@ export default function App() {
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/accept-invite" element={<AcceptAdminInvite />} />
 
         <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route index element={<Overview />} />
@@ -84,7 +94,8 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        <Route path="/admin" element={<RequireAuth admin><AdminLayout /></RequireAuth>}>
+        {/* Personalized Admin Command Center */}
+        <Route path="/admin/:username" element={<RequireAuth admin><AdminLayout /></RequireAuth>}>
           <Route index element={<AdminOverview />} />
           <Route path="queue" element={<ActionQueue />} />
           <Route path="hardware" element={<HardwareRentals />} />
@@ -99,6 +110,10 @@ export default function App() {
           <Route path="broadcast" element={<BroadcastCenter />} />
           <Route path="telemetry" element={<Telemetry />} />
         </Route>
+
+        {/* Smart Fallback: Redirect /admin or /admin/<subpath> to current admin's personalized URL */}
+        <Route path="/admin" element={<RequireAuth admin><AdminRedirect /></RequireAuth>} />
+        <Route path="/admin/*" element={<RequireAuth admin><AdminRedirect /></RequireAuth>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

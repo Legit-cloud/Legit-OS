@@ -5,6 +5,7 @@ export type AccountStatus = 'ACTIVE' | 'PENDING_VERIFICATION' | 'REJECTED' | 'SU
 export interface User {
   id: string;
   fullName: string;
+  username?: string | null;
   email: string;
   phone: string | null;
   bio: string | null;
@@ -198,6 +199,19 @@ export interface BroadcastEntry {
   senderId: string;
   senderName: string;
   deliveredCount: number;
+  createdAt: string;
+}
+
+export type AdminInviteStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
+
+export interface AdminInvite {
+  id: string;
+  email: string;
+  fullName: string;
+  token: string;
+  invitedBy: string;
+  status: AdminInviteStatus;
+  expiresAt: string;
   createdAt: string;
 }
 

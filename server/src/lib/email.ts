@@ -79,7 +79,7 @@ export async function sendOtpEmail(email: string, code: string) {
         This code expires in <strong>10 minutes</strong>. If you did not request this verification, you can safely ignore this email.
       </p>
       <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px; font-size: 11px; color: #475569;">
-        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ilorin, Nigeria
+        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ibadan, Nigeria
       </div>
     </div>
   `;
@@ -113,7 +113,7 @@ export async function sendApplicationReceivedEmail(email: string, fullName: stri
         Verification reviews typically take between <strong>15 minutes to 2 hours</strong> during standard operating hours. You will receive an email as soon as your access is approved.
       </p>
       <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px; font-size: 11px; color: #475569;">
-        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ilorin, Nigeria
+        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ibadan, Nigeria
       </div>
     </div>
   `;
@@ -153,7 +153,7 @@ export async function sendApprovalEmail(email: string, fullName: string) {
         You can now book co-working desks, reserve meeting suites, rent high-spec hardware, and enroll in Academy courses.
       </p>
       <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px; font-size: 11px; color: #475569;">
-        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ilorin, Nigeria
+        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ibadan, Nigeria
       </div>
     </div>
   `;
@@ -198,7 +198,7 @@ export async function sendRejectionEmail(email: string, fullName: string, reason
         </a>
       </div>
       <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px; font-size: 11px; color: #475569;">
-        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ilorin, Nigeria
+        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ibadan, Nigeria
       </div>
     </div>
   `;
@@ -208,5 +208,62 @@ export async function sendRejectionEmail(email: string, fullName: string, reason
     subject: `Identity Verification Update · L.E.G.I.T Innovation Hub`,
     html,
     devLogContext: `Verification rejected for ${fullName} (${email}). Reason: ${reason}`,
+  });
+}
+
+/**
+ * Sends an invitation to an administrator with a single-use setup link.
+ */
+export async function sendAdminInviteEmail(options: {
+  email: string;
+  fullName: string;
+  inviterName: string;
+  token: string;
+  expiresAt: Date;
+}) {
+  const { email, fullName, inviterName, token } = options;
+  const inviteUrl = `${clientOrigin}/admin/accept-invite?token=${token}`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 36px 28px; background: #0b0f19; color: #f8fafc; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08);">
+      <div style="margin-bottom: 24px;">
+        <span style="display: inline-block; padding: 6px 14px; background: rgba(34, 211, 238, 0.12); border: 1px solid rgba(34, 211, 238, 0.35); border-radius: 9999px; color: #22d3ee; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;">
+          Admin Command Invitation
+        </span>
+      </div>
+      <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 16px 0; letter-spacing: -0.02em;">
+        Welcome to the Admin Team, ${fullName}
+      </h1>
+      <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 16px 0;">
+        <strong>${inviterName}</strong> has invited you to join the administrator team at <strong>L.E.G.I.T Innovation Hub</strong>.
+      </p>
+      <p style="font-size: 14px; line-height: 1.6; color: #94a3b8; margin: 0 0 28px 0;">
+        As an administrator, you will receive full access to the Command Center — including the real-time action queue, member directory, hardware rentals, broadcasts, and device telemetry.
+      </p>
+      <div style="margin-bottom: 32px; text-align: left;">
+        <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; border-radius: 9999px; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4);">
+          Accept Invitation &rarr;
+        </a>
+      </div>
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 8px 0;">
+          <strong>Security Notice:</strong> This invitation link is personalized, single-use, and valid for <strong>48 hours</strong>. No KYC documents or face verification will be required.
+        </p>
+        <p style="font-size: 11px; color: #64748b; margin: 0; word-break: break-all;">
+          If the button does not work, copy and paste this link into your browser:<br />
+          <span style="color: #22d3ee;">${inviteUrl}</span>
+        </p>
+      </div>
+      <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 20px; font-size: 11px; color: #64748b;">
+        L.E.G.I.T Innovation Hub · Co-working & Technology Hub · Ibadan, Nigeria
+      </div>
+    </div>
+  `;
+
+  return dispatchEmail({
+    to: email,
+    subject: `Invitation: Join L.E.G.I.T Innovation Hub Admin Team`,
+    html,
+    devLogContext: `ADMIN INVITE TOKEN for ${fullName} (${email}): ${token}\nLink: ${inviteUrl}`,
   });
 }

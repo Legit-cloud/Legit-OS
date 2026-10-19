@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -13,6 +13,7 @@ import { BroadcastReceiver } from '../../components/BroadcastReceiver';
 import { api } from '../../lib/api';
 import { useSocketEvent } from '../../lib/socket';
 import { useAuth } from '../../store/auth';
+import { playChime } from '../../lib/soundAndNotification';
 import type { AdminOverviewData } from './AdminOverview';
 
 function AdminProfileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -38,7 +39,8 @@ function AdminProfileDrawer({ open, onClose }: { open: boolean; onClose: () => v
               <Avatar name={user.fullName} size="lg" />
               <div className="min-w-0">
                 <p className="truncate font-display text-lg font-bold">{user.fullName}</p>
-                <p className="truncate text-sm text-slate-500">{user.email}</p>
+                <p className="truncate font-mono text-xs font-semibold text-cyan-600 dark:text-cyan-400">@{user.username || 'admin'}</p>
+                <p className="truncate text-xs text-slate-500">{user.email}</p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   <Badge tone="cyan">ADMINISTRATOR</Badge>
                   <Badge tone="green"><ShieldCheck className="h-3 w-3" /> Full Privileges</Badge>
@@ -69,13 +71,30 @@ export default function AdminLayout() {
   useSessionSync();
   const qc = useQueryClient();
   const user = useAuth((s) => s.user)!;
+  const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [drawer, setDrawer] = useState(false);
-  const overview = useQuery({ queryKey: ['admin', 'overview'], queryFn: () => api<AdminOverviewData>('/admin/overview') });
+
+  // If visiting another admin's URL slug, smoothly sync to current admin's own handle
+  useEffect(() => {
+    if (user?.username && username && username !== user.username) {
+      const corrected = location.pathname.replace(`/admin/${username}`, `/admin/${user.username}`);
+      navigate(corrected, { replace: true });
+    }
+  }, [username, user?.username, location.pathname, navigate]);
+
+  const overview = useQuery({
+    queryKey: ['admin', 'overview'],
+    queryFn: () => api<AdminOverviewData>('/admin/overview'),
+    refetchInterval: 6_000,
+  });
 
   // Any queue/dispatch change elsewhere refreshes the admin views that show it.
   useSocketEvent('queue:changed', () => {
     qc.invalidateQueries({ queryKey: ['admin', 'overview'] });
     qc.invalidateQueries({ queryKey: ['admin', 'queue'] });
+    playChime('chime');
   });
   useSocketEvent('transit:changed', () => {
     qc.invalidateQueries({ queryKey: ['admin', 'overview'] });
@@ -83,21 +102,23 @@ export default function AdminLayout() {
   });
   useSocketEvent('support:activity', () => qc.invalidateQueries({ queryKey: ['admin', 'threads'] }));
 
+  const base = `/admin/${user?.username || 'admin'}`;
+
   const nav: NavItem[] = [
     // ── Management & Control ──
-    { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true, section: 'Admin Operations' },
-    { to: '/admin/queue', label: 'Action Queue', icon: ListChecks, badge: overview.data?.pendingQueue },
-    { to: '/admin/hardware', label: 'Hardware Rentals', icon: Laptop },
-    { to: '/admin/assets', label: 'Hub Assets & Pricing', icon: Boxes },
-    { to: '/admin/courses', label: 'Academy Courses', icon: GraduationCap },
-    { to: '/admin/riders', label: 'Hub Riders', icon: Bike, badge: overview.data?.pendingRides },
-    { to: '/admin/events', label: 'Events & Games', icon: CalendarDays },
-    { to: '/admin/users', label: 'User Directory', icon: Users },
-    { to: '/admin/broadcast', label: 'Broadcasts & Alerts', icon: Megaphone },
-    { to: '/admin/partners', label: 'Partner Network', icon: Handshake },
-    { to: '/admin/ledger', label: 'Global Ledger', icon: BookOpenCheck },
-    { to: '/admin/comms', label: 'Comms', icon: MessagesSquare },
-    { to: '/admin/telemetry', label: 'Device Telemetry', icon: Activity },
+    { to: base, label: 'Overview', icon: LayoutDashboard, end: true, section: 'Admin Operations' },
+    { to: `${base}/queue`, label: 'Action Queue', icon: ListChecks, badge: overview.data?.pendingQueue, badgeTone: 'rose' },
+    { to: `${base}/hardware`, label: 'Hardware Rentals', icon: Laptop },
+    { to: `${base}/assets`, label: 'Hub Assets & Pricing', icon: Boxes },
+    { to: `${base}/courses`, label: 'Academy Courses', icon: GraduationCap },
+    { to: `${base}/riders`, label: 'Hub Riders', icon: Bike, badge: overview.data?.pendingRides, badgeTone: 'amber' },
+    { to: `${base}/events`, label: 'Events & Games', icon: CalendarDays },
+    { to: `${base}/users`, label: 'User Directory', icon: Users },
+    { to: `${base}/broadcast`, label: 'Broadcasts & Alerts', icon: Megaphone },
+    { to: `${base}/partners`, label: 'Partner Network', icon: Handshake },
+    { to: `${base}/ledger`, label: 'Global Ledger', icon: BookOpenCheck },
+    { to: `${base}/comms`, label: 'Comms', icon: MessagesSquare },
+    { to: `${base}/telemetry`, label: 'Device Telemetry', icon: Activity },
   ];
 
   return (
@@ -115,7 +136,7 @@ export default function AdminLayout() {
             <Avatar name={user.fullName} size="sm" />
             <span className="hidden text-left sm:block">
               <span className="block text-sm font-semibold leading-tight">{user.fullName.split(' ')[0]}</span>
-              <span className="block text-[11px] leading-tight text-cyan-600 dark:text-cyan-400 font-bold">ADMIN</span>
+              <span className="block text-[11px] leading-tight text-cyan-600 dark:text-cyan-400 font-bold font-mono">@{user.username || 'admin'}</span>
             </span>
           </button>
         </>

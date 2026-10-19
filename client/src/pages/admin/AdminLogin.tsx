@@ -18,10 +18,10 @@ export default function AdminLogin() {
   );
   const [loading, setLoading] = useState(false);
 
-  // If already logged in as ADMIN, direct to /admin
+  // If already logged in as ADMIN, direct to /admin/:username
   if (token && user && user.role === 'ADMIN') {
     const next = params.get('next');
-    return <Navigate to={next && next.startsWith('/admin') ? next : '/admin'} replace />;
+    return <Navigate to={next && next.startsWith('/admin') ? next : `/admin/${user.username || 'admin'}`} replace />;
   }
 
   const quickFillAdmin = () => {
@@ -51,7 +51,7 @@ export default function AdminLogin() {
 
       setSession(res.token, res.user);
       const next = params.get('next');
-      navigate(next && next.startsWith('/admin') ? next : '/admin', { replace: true });
+      navigate(next && next.startsWith('/admin') ? next : `/admin/${res.user.username || 'admin'}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {

@@ -1,0 +1,72 @@
+================================================================================
+ROADMAP: ADMIN EMAIL INVITATIONS & PERSONALIZED ADMIN URLS (/admin/{username})
+L.E.G.I.T Innovation Hub
+================================================================================
+
+[X] PHASE 1: DATABASE & SCHEMA SETUP
+    [X] 1.1 Add `AdminInvite` model to `server/prisma/schema.prisma`
+            - id (UUID, primary key)
+            - email (String, lowercase)
+            - fullName (String)
+            - token (String, unique, crypto hex)
+            - invitedBy (String, admin user ID)
+            - status (Enum/String: PENDING, ACCEPTED, REVOKED, EXPIRED)
+            - expiresAt (DateTime, e.g. 48 hours)
+            - createdAt (DateTime)
+    [X] 1.2 Add `username` field to `User` model in `server/prisma/schema.prisma`
+            - username (String?, unique, slug format: e.g. "john-doe")
+    [X] 1.3 Backfill existing admin user(s) with clean unique usernames (e.g. "admin", "director")
+    [X] 1.4 Run Prisma migration / `npx prisma db push` and `npx prisma generate`
+
+[X] PHASE 2: BACKEND LOGIC & RESEND EMAIL INTEGRATION
+    [X] 2.1 Add `sendAdminInviteEmail` in `server/src/lib/email.ts`
+            - Modern, branded HTML template with direct invitation button
+            - Target URL: `${CLIENT_ORIGIN}/admin/accept-invite?token=${token}`
+    [X] 2.2 Create Admin Invitation management routes in `server/src/routes/admin.ts`:
+            - POST   /admin/invites         -> Send new admin invitation (requires ADMIN role)
+            - GET    /admin/invites         -> List pending & past invitations
+            - DELETE /admin/invites/:id     -> Revoke an active invitation
+            - POST   /admin/invites/:id/resend -> Refresh token/expiry and resend email
+    [X] 2.3 Create Public Invitation acceptance routes in `server/src/routes/auth.ts`:
+            - GET    /auth/invite/:token    -> Validate token & return invited person's name/email
+            - POST   /auth/accept-invite    -> Complete setup with password & username;
+                                               creates User with role: 'ADMIN', status: 'ACTIVE',
+                                               verified: true (bypassing KYC);
+                                               marks invite as ACCEPTED;
+                                               issues JWT token.
+
+[X] PHASE 3: PERSONALIZED ROUTING (/admin/{username}/*)
+    [X] 3.1 Update React Router in `client/src/App.tsx`:
+            - Map `/admin/:username/*` to `AdminLayout` and sub-routes (overview, queue, etc.)
+            - Add smart root redirect: hitting `/admin` redirects to `/admin/{loggedInUser.username}`
+            - Add URL synchronizer: if logged-in Admin A opens `/admin/user-b/queue`,
+              auto-switch route to `/admin/user-a/queue` to prevent confusion
+    [X] 3.2 Update `client/src/pages/admin/AdminLayout.tsx` & `client/src/components/Shell.tsx`:
+            - Dynamically prefix sidebar navigation links with current admin's `/:username`
+            - Display personal admin handle in profile drawer and top bar
+
+[X] PHASE 4: ACCEPT INVITATION CLIENT PAGE (/admin/accept-invite)
+    [X] 4.1 Create `client/src/pages/admin/AcceptAdminInvite.tsx`:
+            - Token verification on load with error state if expired or invalid
+            - Welcome banner showing who invited them to L.E.G.I.T Innovation Hub
+            - Password creation & confirmation inputs with live strength checks
+            - Username handle preview/input (e.g. `legitinnovationhub.com/admin/yourname`)
+            - Zero KYC, zero photo capture required
+            - On submit: logs in instantly and redirects straight to `/admin/{username}`
+
+[X] PHASE 5: ADMIN DASHBOARD UI (INVITE TEAM MODAL & LIST)
+    [X] 5.1 In `client/src/pages/admin/UserDirectory.tsx` (or dedicated Admin Team tab):
+            - Add "Invite Admin" button opening a modal for Full Name & Email
+            - Add "Pending Admin Invitations" section displaying:
+              * Invitee Name & Email
+              * Sent Date & Expiration Countdown
+              * Resend Email button
+              * Revoke Invite button
+
+[X] PHASE 6: TESTING & VERIFICATION
+    [X] 6.1 Test sending invite to external email via Resend
+    [X] 6.2 Test token validation, expiry, and single-use invalidation
+    [X] 6.3 Test invitation acceptance and instant admin login without member KYC
+    [X] 6.4 Test personalized `/admin/{username}` routing and auto-redirects
+    [X] 6.5 Run `npm run typecheck` across client & server to ensure 0 errors
+================================================================================

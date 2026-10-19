@@ -22,6 +22,7 @@ export interface NavItem {
   icon: LucideIcon;
   end?: boolean;
   badge?: number;
+  badgeTone?: 'cyan' | 'amber' | 'rose' | 'emerald';
   section?: string;
   soon?: boolean;
 }
@@ -93,7 +94,7 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
             <NavLink
               to={n.to}
               end={n.end}
-              title={collapsed ? n.label : undefined}
+              title={collapsed ? `${n.label}${n.badge && n.badge > 0 ? ` (${n.badge} unattended)` : ''}` : undefined}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition',
@@ -106,10 +107,28 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
             >
               <div className="relative shrink-0">
                 <n.icon className="h-[18px] w-[18px]" />
-                {!!n.badge && (
+                {!!n.badge && n.badge > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500 ring-2 ring-white dark:ring-slate-900" />
+                    <span
+                      className={cn(
+                        'absolute inline-flex h-full w-full animate-ping rounded-full opacity-80',
+                        n.badgeTone === 'rose'
+                          ? 'bg-rose-500'
+                          : n.badgeTone === 'amber'
+                          ? 'bg-amber-400'
+                          : 'bg-cyan-400'
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'relative inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900',
+                        n.badgeTone === 'rose'
+                          ? 'bg-rose-500'
+                          : n.badgeTone === 'amber'
+                          ? 'bg-amber-500'
+                          : 'bg-cyan-500'
+                      )}
+                    />
                   </span>
                 )}
               </div>
@@ -119,10 +138,19 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
                   Soon
                 </span>
               )}
-              {!collapsed && !!n.badge && (
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-cyan-500/30">
+              {!collapsed && !!n.badge && n.badge > 0 && (
+                <span
+                  className={cn(
+                    'ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold tracking-wide text-white shadow-md',
+                    n.badgeTone === 'rose'
+                      ? 'bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 shadow-rose-500/40 ring-1 ring-white/20'
+                      : n.badgeTone === 'amber'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/30 ring-1 ring-white/20'
+                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-500/30'
+                  )}
+                >
                   <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                  {n.badge}
+                  <span>{n.badge}</span>
                 </span>
               )}
             </NavLink>

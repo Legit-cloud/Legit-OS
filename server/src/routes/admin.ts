@@ -12,7 +12,7 @@ import { expireSessions, UNIT_MS } from './hub.js';
 import { VEHICLES } from './transit.js';
 import { telemetryDb } from '../lib/telemetryDb.js';
 import { saveBroadcast, getBroadcastHistory, deleteBroadcast, type BroadcastEntry, type BroadcastType, type BroadcastSeverity, type BroadcastTarget } from '../lib/broadcasts.js';
-import { sendApprovalEmail, sendRejectionEmail } from '../lib/email.js';
+import { sendApprovalEmail, sendRejectionEmail, sendAdminInviteEmail } from '../lib/email.js';
 import crypto from 'node:crypto';
 
 export const adminRouter = Router();
@@ -23,7 +23,7 @@ const actor = (req: { user?: { fullName: string } }) => req.user!.fullName;
 
 adminRouter.get('/overview', async (_req, res) => {
   await expireSessions();
-  const [activeDesks, totalMembers, pendingProofs, openOrders, pendingRides, revenue, logs] = await Promise.all([
+  const [activeDesks, totalMembers, pendingProofs, openOrders, pendingRides, revenue, logs, pendingVerifications] = await Promise.all([
     prisma.booking.count({ where: { status: 'ACTIVE', item: { category: { in: ['DESK', 'FACILITY'] } } } }),
     prisma.user.count({ where: { role: 'USER' } }),
     prisma.paymentProof.count({ where: { status: 'PENDING' } }),
@@ -31,11 +31,15 @@ adminRouter.get('/overview', async (_req, res) => {
     prisma.transitRequest.count({ where: { status: 'REQUESTED' } }),
     prisma.invoice.aggregate({ where: { status: 'PAID' }, _sum: { amount: true } }),
     prisma.telemetryLog.findMany({ orderBy: { createdAt: 'desc' }, take: 40 }),
+    prisma.user.count({ where: { status: 'PENDING_VERIFICATION' as any } }),
   ]);
   res.json({
     activeDesks,
     totalMembers,
-    pendingQueue: pendingProofs + openOrders,
+    pendingQueue: pendingProofs + openOrders + pendingVerifications,
+    pendingVerifications,
+    pendingProofs,
+    openOrders,
     pendingRides,
     totalRevenue: revenue._sum.amount ?? 0,
     logs,
@@ -156,6 +160,119 @@ adminRouter.get('/rental-devices/:id', async (req, res) => {
   }
 });
 
+// ─── Administrator Invitations ──────────────────────────────────────────────
+
+const inviteSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(80),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
+});
+
+adminRouter.get('/invites', async (_req, res) => {
+  const invites = await prisma.adminInvite.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+  const now = new Date();
+  const items = (invites as any[]).map((inv: any) => {
+    if (inv.status === 'PENDING' && inv.expiresAt < now) {
+      return { ...inv, status: 'EXPIRED' as const };
+    }
+    return inv;
+  });
+  res.json({ items });
+});
+
+adminRouter.post('/invites', async (req, res) => {
+  const data = inviteSchema.parse(req.body);
+  const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
+  if (existingUser) {
+    if (existingUser.role === 'ADMIN') {
+      throw badRequest('A user with this email is already an administrator');
+    }
+    throw badRequest('An account with this email already exists as a member');
+  }
+
+  // Check for an existing pending invitation
+  const activeInvite = await prisma.adminInvite.findFirst({
+    where: {
+      email: data.email,
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
+  });
+  if (activeInvite) {
+    throw badRequest('An active invitation has already been sent to this email. You can resend it instead.');
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 48 * 3600 * 1000); // 48 hours
+
+  const invite = await prisma.adminInvite.create({
+    data: {
+      fullName: data.fullName,
+      email: data.email,
+      token,
+      invitedBy: req.user!.id,
+      status: 'PENDING',
+      expiresAt,
+    },
+  });
+
+  await sendAdminInviteEmail({
+    email: data.email,
+    fullName: data.fullName,
+    inviterName: req.user!.fullName,
+    token,
+    expiresAt,
+  });
+
+  await log('ADMIN', `${actor(req)} sent an administrator invitation to ${data.fullName} <${data.email}>`, req.user!.id);
+  res.status(201).json(invite);
+});
+
+adminRouter.delete('/invites/:id', async (req, res) => {
+  const invite = await prisma.adminInvite.findUnique({ where: { id: req.params.id } });
+  if (!invite) throw notFound('Invite');
+
+  const updated = await prisma.adminInvite.update({
+    where: { id: invite.id },
+    data: { status: 'REVOKED' },
+  });
+
+  await log('ADMIN', `${actor(req)} revoked administrator invitation for ${invite.fullName} <${invite.email}>`, req.user!.id);
+  res.json({ ok: true, invite: updated });
+});
+
+adminRouter.post('/invites/:id/resend', async (req, res) => {
+  const invite = await prisma.adminInvite.findUnique({ where: { id: req.params.id } });
+  if (!invite) throw notFound('Invite');
+  if (invite.status === 'ACCEPTED') {
+    throw badRequest('This invitation has already been accepted');
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 48 * 3600 * 1000);
+
+  const updated = await prisma.adminInvite.update({
+    where: { id: invite.id },
+    data: {
+      token,
+      status: 'PENDING',
+      expiresAt,
+    },
+  });
+
+  await sendAdminInviteEmail({
+    email: invite.email,
+    fullName: invite.fullName,
+    inviterName: req.user!.fullName,
+    token,
+    expiresAt,
+  });
+
+  await log('ADMIN', `${actor(req)} resent administrator invitation to ${invite.fullName} <${invite.email}>`, req.user!.id);
+  res.json({ ok: true, invite: updated });
+});
+
 // ─── User directory ─────────────────────────────────────────────────────────
 
 adminRouter.get('/users', async (req, res) => {
@@ -230,6 +347,9 @@ adminRouter.patch('/users/:id', async (req, res) => {
   else if (data.role && data.role !== target.role) {
     await notify(target.id, 'Role updated', `Your account role is now ${data.role}. Sign in again to refresh access.`);
   }
+  if (data.status) {
+    emitToAdmins('queue:changed', null);
+  }
   const updated = await prisma.user.findUniqueOrThrow({ where: { id: target.id } });
   emitToUser(target.id, 'profile:changed', null);
   res.json(publicUser(updated));
@@ -255,6 +375,7 @@ adminRouter.post('/users/:id/approve', async (req, res) => {
 
   await notify(target.id, 'Account Approved', 'Your identity verification was approved! Welcome to L.E.G.I.T Innovation Hub.');
   emitToUser(target.id, 'profile:changed', null);
+  emitToAdmins('queue:changed', null);
   await log('ADMIN', `${actor(req)} approved identity verification for ${target.fullName} <${target.email}>`, req.user!.id);
 
   res.json({ ok: true, user: publicUser(updated) });
@@ -284,6 +405,7 @@ adminRouter.post('/users/:id/reject', async (req, res) => {
 
   await notify(target.id, 'Verification Rejected', `Your identity verification was rejected: ${reason}`);
   emitToUser(target.id, 'profile:changed', null);
+  emitToAdmins('queue:changed', null);
   await log('ADMIN', `${actor(req)} rejected verification for ${target.fullName}: ${reason}`, req.user!.id);
 
   res.json({ ok: true, user: publicUser(updated) });
