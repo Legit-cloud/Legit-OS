@@ -1,72 +1,69 @@
 ================================================================================
-ROADMAP: ADMIN EMAIL INVITATIONS & PERSONALIZED ADMIN URLS (/admin/{username})
+ROADMAP: FULLY FUNCTIONAL ACADEMY CLASSROOM & CURRICULUM MANAGEMENT
 L.E.G.I.T Innovation Hub
 ================================================================================
 
-[X] PHASE 1: DATABASE & SCHEMA SETUP
-    [X] 1.1 Add `AdminInvite` model to `server/prisma/schema.prisma`
+[X] PHASE 1: DATABASE SCHEMA & LESSON PROGRESS MODELING
+    [X] 1.1 Add `LessonProgress` model to `server/prisma/schema.prisma`
             - id (UUID, primary key)
-            - email (String, lowercase)
-            - fullName (String)
-            - token (String, unique, crypto hex)
-            - invitedBy (String, admin user ID)
-            - status (Enum/String: PENDING, ACCEPTED, REVOKED, EXPIRED)
-            - expiresAt (DateTime, e.g. 48 hours)
-            - createdAt (DateTime)
-    [X] 1.2 Add `username` field to `User` model in `server/prisma/schema.prisma`
-            - username (String?, unique, slug format: e.g. "john-doe")
-    [X] 1.3 Backfill existing admin user(s) with clean unique usernames (e.g. "admin", "director")
-    [X] 1.4 Run Prisma migration / `npx prisma db push` and `npx prisma generate`
+            - userId (String, foreign key to User)
+            - courseId (String, foreign key to Course)
+            - lessonId (String, unique identifier within course modules)
+            - completed (Boolean, default true)
+            - completedAt (DateTime, default now)
+            - Compound unique index: @@unique([userId, courseId, lessonId])
+    [X] 1.2 Define rich lesson structure in Course `modulesJson`:
+            - Module: { id, week, title, description, lessons: [Lesson] }
+            - Lesson: { id, title, durationMinutes, videoUrl, summary, resources: [Resource] }
+            - Resource: { title, url, type: 'GITHUB' | 'SLIDES' | 'DOCS' | 'DOWNLOAD' }
+    [X] 1.3 Run `npx prisma db push` and `npx prisma generate`
+    [X] 1.4 Update database seeds with rich lesson content, working video links, and resources
 
-[X] PHASE 2: BACKEND LOGIC & RESEND EMAIL INTEGRATION
-    [X] 2.1 Add `sendAdminInviteEmail` in `server/src/lib/email.ts`
-            - Modern, branded HTML template with direct invitation button
-            - Target URL: `${CLIENT_ORIGIN}/admin/accept-invite?token=${token}`
-    [X] 2.2 Create Admin Invitation management routes in `server/src/routes/admin.ts`:
-            - POST   /admin/invites         -> Send new admin invitation (requires ADMIN role)
-            - GET    /admin/invites         -> List pending & past invitations
-            - DELETE /admin/invites/:id     -> Revoke an active invitation
-            - POST   /admin/invites/:id/resend -> Refresh token/expiry and resend email
-    [X] 2.3 Create Public Invitation acceptance routes in `server/src/routes/auth.ts`:
-            - GET    /auth/invite/:token    -> Validate token & return invited person's name/email
-            - POST   /auth/accept-invite    -> Complete setup with password & username;
-                                               creates User with role: 'ADMIN', status: 'ACTIVE',
-                                               verified: true (bypassing KYC);
-                                               marks invite as ACCEPTED;
-                                               issues JWT token.
+[X] PHASE 2: BACKEND API ENDPOINTS (CLASSROOM & PROGRESS)
+    [X] 2.1 Update `GET /courses/:id/classroom` in `server/src/routes/academy.ts`:
+            - Return course metadata, structured modules/lessons, and enrollment status
+            - Return user's completed lesson IDs from `LessonProgress`
+            - Calculate overall course completion percentage
+    [X] 2.2 Add `POST /courses/:id/lessons/:lessonId/toggle` in `server/src/routes/academy.ts`:
+            - Toggle lesson completion status for authenticated student
+            - Award hub points (+10 points) on first-time lesson completion
+            - Return updated completed lesson IDs and course progress stats
+    [X] 2.3 Add `PUT /admin/courses/:id/curriculum` in `server/src/routes/admin.ts`:
+            - Allow admins to edit modules, add lessons, paste video URLs, and attach resources
+            - Validate curriculum JSON structure and emit `courses:changed` socket event
 
-[X] PHASE 3: PERSONALIZED ROUTING (/admin/{username}/*)
-    [X] 3.1 Update React Router in `client/src/App.tsx`:
-            - Map `/admin/:username/*` to `AdminLayout` and sub-routes (overview, queue, etc.)
-            - Add smart root redirect: hitting `/admin` redirects to `/admin/{loggedInUser.username}`
-            - Add URL synchronizer: if logged-in Admin A opens `/admin/user-b/queue`,
-              auto-switch route to `/admin/user-a/queue` to prevent confusion
-    [X] 3.2 Update `client/src/pages/admin/AdminLayout.tsx` & `client/src/components/Shell.tsx`:
-            - Dynamically prefix sidebar navigation links with current admin's `/:username`
-            - Display personal admin handle in profile drawer and top bar
+[X] PHASE 3: INTERACTIVE VIDEO PLAYER & LESSON VIEWER UI
+    [X] 3.1 Build versatile Video Player component in `client/src/pages/app/Classroom.tsx`:
+            - Support YouTube embeds (standard & Shorts/embed format)
+            - Support Vimeo, Loom, and direct MP4 / HLS video URLs
+            - Fallback branded hub placeholder when recording is processing
+            - Cinema mode / Theater layout toggle for distraction-free learning
+    [X] 3.2 Dynamic Lesson Selector & Navigation:
+            - Click any lesson in the module syllabus to instantly load video & materials
+            - Show visual lesson status: Completed (green check), Up Next (cyan pulse), Locked
+            - Next Lesson / Previous Lesson navigation controls with auto-advance
 
-[X] PHASE 4: ACCEPT INVITATION CLIENT PAGE (/admin/accept-invite)
-    [X] 4.1 Create `client/src/pages/admin/AcceptAdminInvite.tsx`:
-            - Token verification on load with error state if expired or invalid
-            - Welcome banner showing who invited them to L.E.G.I.T Innovation Hub
-            - Password creation & confirmation inputs with live strength checks
-            - Username handle preview/input (e.g. `legitinnovationhub.com/admin/yourname`)
-            - Zero KYC, zero photo capture required
-            - On submit: logs in instantly and redirects straight to `/admin/{username}`
+[X] PHASE 4: LESSON MATERIALS, PROGRESS TRACKING & DISCUSSION TABS
+    [X] 4.1 Build interactive Lesson Tabs under the player:
+            - "Lesson Guide": Summary, key takeaways, and syntax/code snippets
+            - "Resources & Downloads": Clickable pills for GitHub repos, slides, and cheat sheets
+            - "Class Discussion": Question thread with hub instructors and peers
+    [X] 4.2 Real-time Progress Bar & Completion Flow:
+            - "Mark as Completed" button with instant checkmark and hub points feedback
+            - Course overall completion percentage counter (e.g. "12/18 lessons · 67%")
+            - Completion celebration when a course is 100% finished
 
-[X] PHASE 5: ADMIN DASHBOARD UI (INVITE TEAM MODAL & LIST)
-    [X] 5.1 In `client/src/pages/admin/UserDirectory.tsx` (or dedicated Admin Team tab):
-            - Add "Invite Admin" button opening a modal for Full Name & Email
-            - Add "Pending Admin Invitations" section displaying:
-              * Invitee Name & Email
-              * Sent Date & Expiration Countdown
-              * Resend Email button
-              * Revoke Invite button
+[X] PHASE 5: ADMIN CURRICULUM & LESSON MANAGER UI
+    [X] 5.1 In `client/src/pages/admin/AdminCourses.tsx`:
+            - Add "Curriculum Builder" button and modal drawer
+            - Add/edit/remove modules and weeks
+            - Add/edit lessons: Title, Video URL, duration, summary, and downloadable links
+            - Reorder lessons and save directly to backend
 
-[X] PHASE 6: TESTING & VERIFICATION
-    [X] 6.1 Test sending invite to external email via Resend
-    [X] 6.2 Test token validation, expiry, and single-use invalidation
-    [X] 6.3 Test invitation acceptance and instant admin login without member KYC
-    [X] 6.4 Test personalized `/admin/{username}` routing and auto-redirects
-    [X] 6.5 Run `npm run typecheck` across client & server to ensure 0 errors
+[X] PHASE 6: TESTING, VERIFICATION & TYPECHECK
+    [X] 6.1 Test installment plan gating (half-paid unlocks Weeks 1..N/2, fully-paid unlocks all)
+    [X] 6.2 Test video playback and switching across different providers (YouTube, Vimeo, MP4)
+    [X] 6.3 Test lesson completion persistence in DB and points awarding
+    [X] 6.4 Test Admin curriculum editor live updates via WebSockets
+    [X] 6.5 Run `npm run typecheck` across client & server with 0 errors
 ================================================================================

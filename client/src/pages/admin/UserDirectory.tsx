@@ -13,7 +13,7 @@ type Detail = User & {
   online: boolean;
   invoices: Invoice[];
   payments: PaymentProof[];
-  courseAccess: { id: string; paidAmount: number; isFullyPaid: boolean; course: { title: string; fullPrice: number } }[];
+  courseAccess: { id: string; courseId: string; paidAmount: number; isFullyPaid: boolean; course: { id: string; title: string; fullPrice: number } }[];
   bookings: { id: string; status: string; amount: number; item: { name: string } }[];
 };
 type Patch = Partial<Pick<User, 'fullName' | 'email' | 'phone' | 'role' | 'tier' | 'status' | 'verified'>> & { pointsDelta?: number };
@@ -175,6 +175,18 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
     onError: (e) => toast.error('Rejection failed', errorMessage(e)),
   });
 
+  const unenroll = useMutation({
+    mutationFn: (courseId: string) =>
+      api(`/admin/courses/${courseId}/students/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast.success('Student Unenrolled', 'Course access and lesson progress have been revoked.');
+      qc.invalidateQueries({ queryKey: ['admin', 'user', id] });
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'courses'] });
+    },
+    onError: (e) => toast.error('Failed to unenroll student', errorMessage(e)),
+  });
+
   if (isLoading || !u) return <Loading />;
   const self = u.id === me.id;
 
@@ -319,9 +331,48 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Courses</p>
-          {u.courseAccess.length === 0 ? <p className="text-sm text-slate-500">None</p> : (
-            <ul className="space-y-1 text-sm">{u.courseAccess.map((c) => <li key={c.id}>{c.course.title} — {naira(c.paidAmount)}/{naira(c.course.fullPrice)}</li>)}</ul>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Enrolled Courses ({u.courseAccess.length})
+          </p>
+          {u.courseAccess.length === 0 ? (
+            <p className="text-sm text-slate-500">None</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {u.courseAccess.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/70 p-2.5 dark:border-white/10 dark:bg-slate-900"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-xs text-slate-900 dark:text-white truncate">
+                      {c.course.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      {naira(c.paidAmount)} / {naira(c.course.fullPrice)} {c.isFullyPaid ? '(Full)' : '(50%)'}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="px-2 py-1 text-xs shrink-0"
+                    loading={unenroll.isPending && unenroll.variables === (c.course.id || c.courseId)}
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Remove ${u.fullName} from ${c.course.title}? Their classroom access and lesson progress will be revoked.`
+                        )
+                      ) {
+                        unenroll.mutate(c.course.id || c.courseId);
+                      }
+                    }}
+                    title="Unenroll student"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Unenroll</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <div>

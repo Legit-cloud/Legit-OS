@@ -89,6 +89,33 @@ export interface LoungeOrder {
   createdAt: string;
 }
 
+export type ResourceType = 'GITHUB' | 'SLIDES' | 'DOCS' | 'DOWNLOAD';
+
+export interface LessonResource {
+  id: string;
+  title: string;
+  url: string;
+  type: ResourceType;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  videoUrl?: string;
+  summary: string;
+  keyPoints?: string[];
+  resources: LessonResource[];
+}
+
+export interface CourseModule {
+  id: string;
+  week: number;
+  title: string;
+  description: string;
+  lessons: Lesson[];
+}
+
 export interface Course {
   id: string;
   slug: string;
@@ -102,7 +129,17 @@ export interface Course {
   enrollment: { paidAmount: number; isFullyPaid: boolean } | null;
   hasAccess: boolean;
   openInvoice: Invoice | null;
+  modules?: CourseModule[];
 }
+
+export interface ClassroomData {
+  course: Course;
+  modules: CourseModule[];
+  enrollment: { paidAmount: number; isFullyPaid: boolean };
+  completedLessonIds: string[];
+  progressPercent: number;
+}
+
 
 export interface Rider {
   id: string;

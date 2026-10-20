@@ -301,7 +301,7 @@ adminRouter.get('/users/:id', async (req, res) => {
     include: {
       invoices: { orderBy: { createdAt: 'desc' }, take: 20 },
       payments: { orderBy: { createdAt: 'desc' }, take: 20 },
-      courseAccess: { include: { course: { select: { title: true, fullPrice: true } } } },
+      courseAccess: { include: { course: { select: { id: true, title: true, fullPrice: true } } } },
       bookings: { orderBy: { createdAt: 'desc' }, take: 20, include: { item: { select: { name: true } } } },
     },
   });
@@ -768,6 +768,117 @@ adminRouter.delete('/courses/:id', async (req, res) => {
   await log('ADMIN', `${actor(req)} deleted course ${course.title}`, req.user!.id);
   emitAll('courses:changed', { action: 'delete', id: req.params.id });
   res.json({ deleted: true });
+});
+
+const curriculumSchema = z.object({
+  modules: z.array(
+    z.object({
+      id: z.string(),
+      week: z.number().int().min(1),
+      title: z.string().min(1),
+      description: z.string().default(''),
+      lessons: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string().min(1),
+          durationMinutes: z.number().min(1).default(30),
+          videoUrl: z.string().optional(),
+          summary: z.string().default(''),
+          keyPoints: z.array(z.string()).optional(),
+          resources: z.array(
+            z.object({
+              id: z.string(),
+              title: z.string().min(1),
+              url: z.string(),
+              type: z.enum(['GITHUB', 'SLIDES', 'DOCS', 'DOWNLOAD']),
+            })
+          ).default([]),
+        })
+      ).default([]),
+    })
+  ),
+});
+
+adminRouter.put('/courses/:id/curriculum', async (req, res) => {
+  const { modules } = curriculumSchema.parse(req.body);
+  const course = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!course) throw notFound('Course');
+
+  const updated = await prisma.course.update({
+    where: { id: course.id },
+    data: {
+      modulesJson: JSON.stringify(modules),
+    },
+  });
+
+  await log('ADMIN', `${actor(req)} updated curriculum for ${course.title} (${modules.length} modules)`, req.user!.id);
+  emitAll('courses:changed', { action: 'update', course: updated });
+  res.json({ ok: true, modules });
+});
+
+adminRouter.get('/courses/:id/students', async (req, res) => {
+  const course = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!course) throw notFound('Course');
+
+  const enrollments = await prisma.userCourse.findMany({
+    where: { courseId: course.id },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          status: true,
+          role: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const students = enrollments.map((e) => ({
+    enrollmentId: e.id,
+    userId: e.userId,
+    courseId: e.courseId,
+    fullName: e.user.fullName,
+    email: e.user.email,
+    phone: e.user.phone,
+    status: e.user.status,
+    paidAmount: e.paidAmount,
+    isFullyPaid: e.isFullyPaid,
+    enrolledAt: e.createdAt,
+  }));
+
+  res.json({ course: { id: course.id, title: course.title, fullPrice: course.fullPrice }, students });
+});
+
+adminRouter.delete('/courses/:courseId/students/:userId', async (req, res) => {
+  const { courseId, userId } = req.params;
+
+  const enrollment = await prisma.userCourse.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+    include: {
+      user: { select: { fullName: true } },
+      course: { select: { title: true } },
+    },
+  });
+
+  if (!enrollment) throw notFound('Enrollment');
+
+  await prisma.$transaction([
+    prisma.userCourse.delete({ where: { id: enrollment.id } }),
+    prisma.lessonProgress.deleteMany({ where: { userId, courseId } }),
+  ]);
+
+  await log(
+    'ADMIN',
+    `${actor(req)} unenrolled ${enrollment.user.fullName} from course ${enrollment.course.title}`,
+    req.user!.id
+  );
+  emitAll('courses:changed', { action: 'unenroll', courseId, userId });
+
+  res.json({ ok: true });
 });
 
 // ─── Riders & transit dispatch ──────────────────────────────────────────────

@@ -1,11 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { sampleCurriculums, buildDefaultModules } from '../src/lib/curriculumData';
 
 const prisma = new PrismaClient();
 const days = (n: number) => new Date(Date.now() + n * 24 * 3600 * 1000);
-
-const modules = (...titles: string[]) =>
-  JSON.stringify(titles.map((title, i) => ({ week: i + 1, title, lessons: 3 + (i % 3) })));
 
 async function main() {
   // Wipe in dependency order so the seed is repeatable.
@@ -60,21 +58,27 @@ async function main() {
   );
 
   const courses = [
-    ['full-stack-web', 'Full-Stack Web Development', 'React, Node.js, databases and deployment — ship production web apps end to end.', 'Intermediate', 16, 120000,
-      modules('HTML, CSS & Modern Layout', 'JavaScript Deep Dive', 'React Fundamentals', 'State & Data Fetching', 'Node.js & Express APIs', 'Databases with Prisma', 'Auth & Security', 'Deployment & Capstone')],
-    ['genai-cybersecurity', 'GenAI Cybersecurity & Ethical Hacking', 'Offensive and defensive security with AI-assisted tooling, recon, and incident response.', 'Advanced', 12, 120000,
-      modules('Security Foundations', 'Networking & Recon', 'Web App Exploitation', 'AI for Threat Detection', 'Red vs Blue Labs', 'Capstone CTF')],
-    ['python-mastery', 'Python Mastery', 'Advanced Python: async, data pipelines, testing, packaging and automation.', 'Advanced', 10, 120000,
-      modules('Idiomatic Python', 'OOP & Patterns', 'Async & Concurrency', 'Data Engineering', 'Testing & Packaging')],
-    ['video-editing', 'In-Depth Video Editing', 'Storytelling, colour grading and motion graphics in the hub creative studio.', 'Beginner', 8, 70000,
-      modules('Editing Foundations', 'Colour Grading', 'Audio for Video', 'Motion Graphics', 'Portfolio Reel')],
-    ['project-management', 'Project Management', 'Agile, Scrum and stakeholder management for tech teams.', 'Beginner', 6, 70000,
-      modules('PM Foundations', 'Agile & Scrum', 'Planning & Estimation', 'Leading Teams')],
-    ['python-beginners', 'Python for Absolute Beginners', 'Zero to confident: variables, loops, functions and your first projects.', 'Beginner', 6, 70000,
-      modules('Getting Started', 'Control Flow', 'Functions', 'Working with Data', 'Mini Projects')],
+    ['full-stack-web', 'Full-Stack Web Development', 'React, Node.js, databases and deployment — ship production web apps end to end.', 'Intermediate', 16, 120000],
+    ['genai-cybersecurity', 'GenAI Cybersecurity & Ethical Hacking', 'Offensive and defensive security with AI-assisted tooling, recon, and incident response.', 'Advanced', 12, 120000],
+    ['python-mastery', 'Python Mastery', 'Advanced Python: async, data pipelines, testing, packaging and automation.', 'Advanced', 10, 120000],
+    ['video-editing', 'In-Depth Video Editing', 'Storytelling, colour grading and motion graphics in the hub creative studio.', 'Beginner', 8, 70000],
+    ['project-management', 'Project Management', 'Agile, Scrum and stakeholder management for tech teams.', 'Beginner', 6, 70000],
+    ['python-beginners', 'Python for Absolute Beginners', 'Zero to confident: variables, loops, functions and your first projects.', 'Beginner', 6, 70000],
   ] as const;
-  for (const [slug, title, description, level, durationWeeks, fullPrice, modulesJson] of courses) {
-    await prisma.course.create({ data: { slug, title, description, level, durationWeeks, fullPrice, halfPrice: fullPrice / 2, modulesJson } });
+  for (const [slug, title, description, level, durationWeeks, fullPrice] of courses) {
+    const modules = sampleCurriculums[slug] || buildDefaultModules(title, durationWeeks);
+    await prisma.course.create({
+      data: {
+        slug,
+        title,
+        description,
+        level,
+        durationWeeks,
+        fullPrice,
+        halfPrice: fullPrice / 2,
+        modulesJson: JSON.stringify(modules),
+      },
+    });
   }
 
   // Prices marked "placeholder" were not in the brief — adjust them in Admin → Hub Assets.

@@ -59,6 +59,7 @@ model User {
   transitRides  TransitRequest[]
   rsvps         EventRsvp[]
   notifications Notification[]
+  lessonProgress LessonProgress[]
 }
 
 model EmailOtp {
@@ -111,6 +112,7 @@ model Course {
   halfPrice     Float
   modulesJson   String       @default("[]")
   enrolledUsers UserCourse[]
+  lessonProgress LessonProgress[]
 }
 
 model UserCourse {
@@ -124,6 +126,21 @@ model UserCourse {
   createdAt   DateTime @default(now())
 
   @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  courseId    String
+  lessonId    String
+  completed   Boolean  @default(true)
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId, lessonId])
+  @@index([userId, courseId])
 }
 
 // Bookable / purchasable hub assets: desks, facilities, programs, hardware, lounge menu.

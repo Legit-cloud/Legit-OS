@@ -1,15 +1,18 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useMemo, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  GraduationCap, Plus, Pencil, Trash2, Users, Clock, BookOpen, Search
+  GraduationCap, Plus, Pencil, Trash2, Users, Clock, BookOpen, Search,
+  Layers, Video, Check, X, ChevronRight, ExternalLink
 } from 'lucide-react';
 import {
-  Badge, Button, Card, Field, Loading, Modal, PageHeader,
-  StatCard, Empty
+  Badge, Button, Field, Loading, Modal, PageHeader,
+  StatCard, Empty, cn
 } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
-import { naira } from '../../lib/format';
+import { formatDate, naira } from '../../lib/format';
 import { useSocketEvent } from '../../lib/socket';
+import type { CourseModule, Lesson, LessonResource } from '../../lib/types';
 import { toast } from '../../store/toast';
 
 interface AdminCourse {
@@ -74,6 +77,8 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
           className="field"
           required
           minLength={2}
+          placeholder="e.g. Full-Stack Web Development"
+          onFocus={(e) => e.target.select()}
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
         />
@@ -83,6 +88,8 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
         <textarea
           className="field resize-none h-24"
           required
+          placeholder="Enter a brief course overview..."
+          onFocus={(e) => e.target.select()}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
@@ -98,17 +105,17 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
             <option value="Advanced">Advanced</option>
-            <option value="All Levels">All Levels</option>
           </select>
         </Field>
 
         <Field label="Duration (Weeks)">
           <input
-            className="field font-mono"
+            className="field"
             type="number"
             min={1}
             max={52}
             required
+            onFocus={(e) => e.target.select()}
             value={form.durationWeeks}
             onChange={(e) => setForm({ ...form, durationWeeks: Number(e.target.value) })}
           />
@@ -123,6 +130,7 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
             min={0}
             step={1000}
             required
+            onFocus={(e) => e.target.select()}
             value={form.fullPrice}
             onChange={(e) => handleFullPriceChange(Number(e.target.value))}
           />
@@ -135,6 +143,7 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
             min={0}
             step={500}
             required
+            onFocus={(e) => e.target.select()}
             value={form.halfPrice}
             onChange={(e) => setForm({ ...form, halfPrice: Number(e.target.value) })}
           />
@@ -151,51 +160,616 @@ function CourseModalForm({ draft, onDone }: { draft: CourseDraft; onDone: () => 
   );
 }
 
+function CurriculumModal({
+  course,
+  onClose,
+}: {
+  course: AdminCourse;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const initialModules: CourseModule[] = useMemo(() => {
+    try {
+      const parsed = JSON.parse(course.modulesJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [course.modulesJson]);
+
+  const [modules, setModules] = useState<CourseModule[]>(initialModules);
+  const [activeModuleIdx, setActiveModuleIdx] = useState(0);
+  const [editingLessonIdx, setEditingLessonIdx] = useState<number | null>(null);
+
+  const saveCurriculum = useMutation({
+    mutationFn: () =>
+      api(`/admin/courses/${course.id}/curriculum`, {
+        method: 'PUT',
+        body: { modules },
+      }),
+    onSuccess: () => {
+      toast.success('Curriculum Updated', `Saved ${modules.length} modules for ${course.title}.`);
+      qc.invalidateQueries({ queryKey: ['admin', 'courses'] });
+      qc.invalidateQueries({ queryKey: ['courses'] });
+      onClose();
+    },
+    onError: (e) => toast.error('Failed to save curriculum', errorMessage(e)),
+  });
+
+  const activeModule = modules[activeModuleIdx];
+
+  const addModule = () => {
+    const nextWeek = modules.length + 1;
+    const newMod: CourseModule = {
+      id: `mod-${Date.now()}`,
+      week: nextWeek,
+      title: '',
+      description: '',
+      lessons: [
+        {
+          id: `les-${Date.now()}-1`,
+          title: '',
+          durationMinutes: 30,
+          videoUrl: '',
+          summary: '',
+          keyPoints: [],
+          resources: [],
+        },
+      ],
+    };
+    const next = [...modules, newMod];
+    setModules(next);
+    setActiveModuleIdx(next.length - 1);
+    setEditingLessonIdx(0);
+  };
+
+  const removeModule = (idx: number) => {
+    if (!confirm('Remove this entire module and all its lessons?')) return;
+    const next = modules.filter((_, i) => i !== idx).map((m, i) => ({ ...m, week: i + 1 }));
+    setModules(next);
+    setActiveModuleIdx(Math.max(0, idx - 1));
+    setEditingLessonIdx(null);
+  };
+
+  const addLesson = () => {
+    if (!activeModule) return;
+    const newLesson: Lesson = {
+      id: `les-${Date.now()}`,
+      title: '',
+      durationMinutes: 30,
+      videoUrl: '',
+      summary: '',
+      keyPoints: [],
+      resources: [],
+    };
+    const updatedLessons = [...(activeModule.lessons || []), newLesson];
+    const nextModules = modules.map((m, i) =>
+      i === activeModuleIdx ? { ...m, lessons: updatedLessons } : m
+    );
+    setModules(nextModules);
+    setEditingLessonIdx(updatedLessons.length - 1);
+  };
+
+  const removeLesson = (lessonIdx: number) => {
+    if (!activeModule) return;
+    const updatedLessons = activeModule.lessons.filter((_, i) => i !== lessonIdx);
+    const nextModules = modules.map((m, i) =>
+      i === activeModuleIdx ? { ...m, lessons: updatedLessons } : m
+    );
+    setModules(nextModules);
+    setEditingLessonIdx(null);
+  };
+
+  const updateCurrentLesson = (patch: Partial<Lesson>) => {
+    if (!activeModule || editingLessonIdx === null) return;
+    const updatedLessons = activeModule.lessons.map((les, i) =>
+      i === editingLessonIdx ? { ...les, ...patch } : les
+    );
+    const nextModules = modules.map((m, i) =>
+      i === activeModuleIdx ? { ...m, lessons: updatedLessons } : m
+    );
+    setModules(nextModules);
+  };
+
+  const addResource = () => {
+    if (!activeModule || editingLessonIdx === null) return;
+    const currentLesson = activeModule.lessons[editingLessonIdx];
+    const newResource: LessonResource = {
+      id: `res-${Date.now()}`,
+      title: '',
+      url: '',
+      type: 'DOCS',
+    };
+    updateCurrentLesson({
+      resources: [...(currentLesson.resources || []), newResource],
+    });
+  };
+
+  const removeResource = (resIdx: number) => {
+    if (!activeModule || editingLessonIdx === null) return;
+    const currentLesson = activeModule.lessons[editingLessonIdx];
+    updateCurrentLesson({
+      resources: (currentLesson.resources || []).filter((_, i) => i !== resIdx),
+    });
+  };
+
+  const updateResource = (resIdx: number, patch: Partial<LessonResource>) => {
+    if (!activeModule || editingLessonIdx === null) return;
+    const currentLesson = activeModule.lessons[editingLessonIdx];
+    const updated = (currentLesson.resources || []).map((r, i) =>
+      i === resIdx ? { ...r, ...patch } : r
+    );
+    updateCurrentLesson({ resources: updated });
+  };
+
+  const currentEditingLesson =
+    activeModule && editingLessonIdx !== null ? activeModule.lessons[editingLessonIdx] : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-white/10">
+        <div>
+          <span className="text-xs font-mono uppercase text-cyan-600 dark:text-cyan-400 font-bold">
+            Curriculum Builder
+          </span>
+          <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white">
+            {course.title}
+          </h3>
+          <p className="text-xs text-slate-500">
+            Configure modules, lessons, working video URLs, and downloadable resource links.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={addModule}>
+          <Plus className="h-4 w-4" /> Add Week / Module
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[240px_1fr]">
+        {/* Module Sidebar */}
+        <div className="space-y-2 border-r border-slate-200 pr-3 dark:border-white/10">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Modules ({modules.length})
+          </p>
+          <div className="space-y-1 max-h-[460px] overflow-y-auto">
+            {modules.map((m, idx) => (
+              <button
+                key={m.id || idx}
+                type="button"
+                onClick={() => {
+                  setActiveModuleIdx(idx);
+                  setEditingLessonIdx(null);
+                }}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-xl p-2.5 text-left text-xs transition',
+                  idx === activeModuleIdx
+                    ? 'bg-cyan-500/15 font-semibold text-cyan-700 dark:text-cyan-300'
+                    : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300'
+                )}
+              >
+                <div className="min-w-0 pr-2">
+                  <span className="block text-[10px] font-mono text-slate-400">Week {m.week}</span>
+                  <p className="truncate">{m.title?.trim() ? m.title : `Week ${m.week} (Untitled)`}</p>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                  {m.lessons?.length || 0}L
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active Module Editor Stage */}
+        <div className="space-y-4">
+          {activeModule ? (
+            <>
+              {/* Module Metadata Form */}
+              <div className="grid gap-3 sm:grid-cols-2 bg-slate-50 p-3 rounded-2xl dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                <Field label={`Week ${activeModule.week} Title`}>
+                  <input
+                    className="field text-xs"
+                    placeholder={`e.g. Week ${activeModule.week} Core Architecture`}
+                    onFocus={(e) => e.target.select()}
+                    value={activeModule.title}
+                    onChange={(e) => {
+                      const title = e.target.value;
+                      setModules(
+                        modules.map((m, i) => (i === activeModuleIdx ? { ...m, title } : m))
+                      );
+                    }}
+                  />
+                </Field>
+
+                <Field label="Module Description">
+                  <input
+                    className="field text-xs"
+                    placeholder="e.g. Overview of topics and lab exercises covered..."
+                    onFocus={(e) => e.target.select()}
+                    value={activeModule.description}
+                    onChange={(e) => {
+                      const description = e.target.value;
+                      setModules(
+                        modules.map((m, i) => (i === activeModuleIdx ? { ...m, description } : m))
+                      );
+                    }}
+                  />
+                </Field>
+                <div className="sm:col-span-2 flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="px-2.5 py-1 text-xs"
+                    onClick={() => removeModule(activeModuleIdx)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remove Module
+                  </Button>
+                </div>
+              </div>
+
+              {/* Lessons Management */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Lessons in this module ({activeModule.lessons?.length || 0})
+                  </h4>
+                  <Button size="sm" variant="outline" onClick={addLesson}>
+                    <Plus className="h-3.5 w-3.5" /> Add Lesson
+                  </Button>
+                </div>
+
+                {/* Lesson List Tabs */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(activeModule.lessons || []).map((les, lIdx) => (
+                    <button
+                      key={les.id || lIdx}
+                      type="button"
+                      onClick={() => setEditingLessonIdx(lIdx)}
+                      className={cn(
+                        'rounded-xl px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5',
+                        editingLessonIdx === lIdx
+                          ? 'bg-cyan-500 text-white'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-300'
+                      )}
+                    >
+                      <Video className="h-3 w-3" />
+                      <span className="truncate max-w-[140px]">
+                        {les.title?.trim() ? les.title : `Lesson ${lIdx + 1} (Untitled)`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Active Lesson Detail Editor */}
+                {currentEditingLesson && editingLessonIdx !== null && (
+                  <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                        Editing Lesson {editingLessonIdx + 1}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        className="px-2 py-0.5 text-xs"
+                        onClick={() => removeLesson(editingLessonIdx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete Lesson
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label="Lesson Title">
+                        <input
+                          className="field text-xs"
+                          placeholder="e.g. Semantic HTML5 & Accessible DOM Structure"
+                          onFocus={(e) => e.target.select()}
+                          value={currentEditingLesson.title}
+                          onChange={(e) => updateCurrentLesson({ title: e.target.value })}
+                        />
+                      </Field>
+
+                      <Field label="Duration (Minutes)">
+                        <input
+                          type="number"
+                          min={1}
+                          className="field text-xs font-mono"
+                          onFocus={(e) => e.target.select()}
+                          value={currentEditingLesson.durationMinutes}
+                          onChange={(e) =>
+                            updateCurrentLesson({ durationMinutes: Number(e.target.value) })
+                          }
+                        />
+                      </Field>
+                    </div>
+
+                    <Field
+                      label="Video Lecture URL"
+                      hint="Paste YouTube (e.g. https://www.youtube.com/watch?v=...), Vimeo, Loom, or direct .mp4 URL"
+                    >
+                      <input
+                        className="field text-xs font-mono"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        onFocus={(e) => e.target.select()}
+                        value={currentEditingLesson.videoUrl || ''}
+                        onChange={(e) => updateCurrentLesson({ videoUrl: e.target.value })}
+                      />
+                    </Field>
+
+                    <Field label="Lesson Summary & Notes">
+                      <textarea
+                        className="field text-xs h-20 resize-none"
+                        placeholder="Overview of core concepts, architecture diagrams, and syntax tips..."
+                        onFocus={(e) => e.target.select()}
+                        value={currentEditingLesson.summary || ''}
+                        onChange={(e) => updateCurrentLesson({ summary: e.target.value })}
+                      />
+                    </Field>
+
+                    <Field
+                      label="Key Takeaways & Core Skills (one per line)"
+                      hint="Enter bullet points. Each new line appears as a key skill in the student lesson guide."
+                    >
+                      <textarea
+                        className="field text-xs h-20 resize-none"
+                        placeholder="Differentiating semantic tags&#10;CSS grid auto-fit layouts&#10;Accessible ARIA labels"
+                        onFocus={(e) => e.target.select()}
+                        value={(currentEditingLesson.keyPoints || []).join('\n')}
+                        onChange={(e) =>
+                          updateCurrentLesson({
+                            keyPoints: e.target.value.split('\n').filter((l) => l.trim().length > 0),
+                          })
+                        }
+                      />
+                    </Field>
+
+                    {/* Resources for this lesson */}
+                    <div className="pt-2 space-y-2 border-t border-cyan-500/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase text-slate-500">
+                          Lesson Resources ({currentEditingLesson.resources?.length || 0})
+                        </span>
+                        <Button size="sm" variant="outline" onClick={addResource}>
+                          <Plus className="h-3 w-3" /> Add Link / Resource
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {(currentEditingLesson.resources || []).map((res, rIdx) => (
+                          <div
+                            key={res.id || rIdx}
+                            className="flex flex-col sm:flex-row items-center gap-2 rounded-xl bg-white/70 dark:bg-slate-900 p-2 border border-slate-200 dark:border-white/10"
+                          >
+                            <input
+                              className="field text-xs py-1 flex-1"
+                              placeholder="Resource Title (e.g. Starter GitHub Repository)"
+                              onFocus={(e) => e.target.select()}
+                              value={res.title}
+                              onChange={(e) => updateResource(rIdx, { title: e.target.value })}
+                            />
+                            <input
+                              className="field text-xs py-1 font-mono flex-1"
+                              placeholder="URL (e.g. https://github.com/...)"
+                              onFocus={(e) => e.target.select()}
+                              value={res.url}
+                              onChange={(e) => updateResource(rIdx, { url: e.target.value })}
+                            />
+                            <select
+                              className="field text-xs py-1 w-28"
+                              value={res.type}
+                              onChange={(e) =>
+                                updateResource(rIdx, {
+                                  type: e.target.value as LessonResource['type'],
+                                })
+                              }
+                            >
+                              <option value="GITHUB">GITHUB</option>
+                              <option value="SLIDES">SLIDES</option>
+                              <option value="DOCS">DOCS</option>
+                              <option value="DOWNLOAD">DOWNLOAD</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => removeResource(rIdx)}
+                              className="p-1 text-slate-400 hover:text-rose-500"
+                              title="Remove resource"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="py-12 text-center text-xs text-slate-400">
+              No modules defined. Click "Add Week / Module" above.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-white/10">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" loading={saveCurriculum.isPending} onClick={() => saveCurriculum.mutate()}>
+          <Check className="h-4 w-4" /> Save Curriculum
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface EnrolledStudentItem {
+  enrollmentId: string;
+  userId: string;
+  courseId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  paidAmount: number;
+  isFullyPaid: boolean;
+  enrolledAt: string;
+}
+
+function EnrolledStudentsModal({
+  course,
+  onClose,
+}: {
+  course: AdminCourse;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'course-students', course.id],
+    queryFn: () =>
+      api<{
+        course: { id: string; title: string; fullPrice: number };
+        students: EnrolledStudentItem[];
+      }>(`/admin/courses/${course.id}/students`),
+  });
+
+  const unenroll = useMutation({
+    mutationFn: (userId: string) =>
+      api(`/admin/courses/${course.id}/students/${userId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast.success('Student Unenrolled', 'Student removed from this course.');
+      qc.invalidateQueries({ queryKey: ['admin', 'course-students', course.id] });
+      qc.invalidateQueries({ queryKey: ['admin', 'courses'] });
+      qc.invalidateQueries({ queryKey: ['courses'] });
+    },
+    onError: (e) => toast.error('Failed to unenroll student', errorMessage(e)),
+  });
+
+  const students = data?.students || [];
+
+  return (
+    <div className="space-y-4">
+      <div className="border-b border-slate-200 pb-3 dark:border-white/10">
+        <span className="text-xs font-mono uppercase text-cyan-600 dark:text-cyan-400 font-bold">
+          Class Roster & Enrollments
+        </span>
+        <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white">
+          {course.title}
+        </h3>
+        <p className="text-xs text-slate-500">
+          Enrolled students ({students.length}) · Manage active enrollment access
+        </p>
+      </div>
+
+      {isLoading ? (
+        <Loading label="Loading enrolled students…" />
+      ) : students.length === 0 ? (
+        <div className="py-12 text-center text-xs text-slate-400">
+          No students are currently enrolled in this course.
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[460px] overflow-y-auto">
+          {students.map((st) => (
+            <div
+              key={st.enrollmentId}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-slate-900"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                    {st.fullName}
+                  </p>
+                  <Badge tone={st.isFullyPaid ? 'green' : 'amber'}>
+                    {st.isFullyPaid ? 'Fully Paid' : '50% Installment'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-500 truncate">
+                  {st.email} {st.phone ? `· ${st.phone}` : ''}
+                </p>
+                <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  Paid {naira(st.paidAmount)} / {naira(course.fullPrice)} · Enrolled {formatDate(st.enrolledAt)}
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                variant="danger"
+                className="px-2.5 py-1 text-xs shrink-0"
+                loading={unenroll.isPending && unenroll.variables === st.userId}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Remove ${st.fullName} from ${course.title}? Their classroom access and lesson progress will be revoked.`
+                    )
+                  ) {
+                    unenroll.mutate(st.userId);
+                  }
+                }}
+                title="Unenroll student from this course"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Unenroll</span>
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-white/10">
+        <Button variant="ghost" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminCourses() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<CourseDraft | null>(null);
+  const [managingCurriculum, setManagingCurriculum] = useState<AdminCourse | null>(null);
+  const [viewingStudents, setViewingStudents] = useState<AdminCourse | null>(null);
 
   useSocketEvent('courses:changed', () => {
     qc.invalidateQueries({ queryKey: ['admin', 'courses'] });
     qc.invalidateQueries({ queryKey: ['courses'] });
   });
 
-  const { data: courses, isLoading } = useQuery({
+  const { data: courses = [], isLoading } = useQuery({
     queryKey: ['admin', 'courses'],
     queryFn: () => api<AdminCourse[]>('/admin/courses'),
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => api<{ deleted: boolean }>(`/admin/courses/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => api(`/admin/courses/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      toast.success('Course deleted');
+      toast.success('Course removed');
       qc.invalidateQueries({ queryKey: ['admin', 'courses'] });
       qc.invalidateQueries({ queryKey: ['courses'] });
     },
-    onError: (e) => toast.error('Delete failed', errorMessage(e)),
+    onError: (e) => toast.error('Failed to delete course', errorMessage(e)),
   });
-
-  if (isLoading || !courses) return <Loading label="Loading academy courses…" />;
 
   const filtered = courses.filter(
     (c) =>
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.description.toLowerCase().includes(search.toLowerCase()) ||
-      c.level.toLowerCase().includes(search.toLowerCase()),
+      c.level.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.enrolledUsers ?? 0), 0);
-  const avgPrice = courses.length ? Math.round(courses.reduce((sum, c) => sum + c.fullPrice, 0) / courses.length) : 0;
+  const totalEnrollments = courses.reduce((acc, c) => acc + (c._count?.enrolledUsers ?? 0), 0);
+  const avgPrice = courses.length ? Math.round(courses.reduce((acc, c) => acc + c.fullPrice, 0) / courses.length) : 0;
+
+  if (isLoading) return <Loading />;
 
   return (
     <>
       <PageHeader
-        eyebrow="Academy & Pricing"
-        title="Academy Courses"
-        subtitle="Manage tech courses, tuition pricing, installment structures, and enrollment details live."
+        eyebrow="Academy Management"
+        title="Courses & Tuition"
+        subtitle="Manage tech education courses, curriculums, lesson videos, and installment pricing."
         actions={
           <Button
+            variant="primary"
             onClick={() =>
               setEditing({
                 title: '',
@@ -247,77 +821,178 @@ export default function AdminCourses() {
           />
         </div>
         <p className="text-xs text-slate-500">
-          Tuition and course updates reflect live on the <strong>Academy</strong> member page.
+          Tuition, lesson videos, and curriculum updates reflect live in the <strong>Classroom</strong>.
         </p>
       </div>
 
-      {/* Course Cards */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((c) => (
-          <Card key={c.id} className="relative flex flex-col justify-between overflow-hidden transition-all hover:border-cyan-500/50">
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <span className="rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 p-3 text-cyan-600 dark:text-cyan-400">
-                  <GraduationCap className="h-6 w-6" />
-                </span>
-                <Badge tone="cyan">{c.level}</Badge>
-              </div>
+      {/* Course Cards Grid */}
+      <div className="mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2">
+        {filtered.map((c) => {
+          let moduleCount = 0;
+          let lessonCount = 0;
+          try {
+            const parsed = JSON.parse(c.modulesJson) as CourseModule[];
+            if (Array.isArray(parsed)) {
+              moduleCount = parsed.length;
+              lessonCount = parsed.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
+            }
+          } catch {
+            moduleCount = 0;
+            lessonCount = 0;
+          }
 
-              <div className="mt-4">
-                <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white">
-                  {c.title}
-                </h3>
-                <p className="mt-1 line-clamp-3 text-sm text-slate-600 dark:text-slate-400">
-                  {c.description}
-                </p>
+          return (
+            <div
+              key={c.id}
+              className="relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white/90 p-6 sm:p-7 shadow-sm transition-all hover:border-cyan-500/50 hover:shadow-xl dark:border-white/10 dark:bg-slate-900/90 dark:backdrop-blur-xl"
+            >
+              <div>
+                {/* Header Row: Icon, Badges, & Preview */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25">
+                      <GraduationCap className="h-6 w-6" />
+                    </span>
+                    <div>
+                      <Badge tone="cyan">{c.level}</Badge>
+                    </div>
+                  </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-cyan-500" />
-                    {c.durationWeeks} weeks
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-cyan-500" />
-                    {c._count?.enrolledUsers ?? 0} enrolled
-                  </span>
+                  <Link
+                    to={`/app/academy/${c.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-500 hover:bg-cyan-50/50 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-cyan-300"
+                    title="Preview student classroom view"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>Preview Classroom</span>
+                  </Link>
+                </div>
+
+                {/* Course Title & Description */}
+                <div className="mt-4">
+                  <h3 className="font-display text-xl font-bold text-slate-900 dark:text-white leading-snug">
+                    {c.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {c.description}
+                  </p>
+
+                  {/* Course Metadata Badges */}
+                  <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 font-medium border border-slate-200/50 dark:bg-white/5 dark:border-white/5">
+                      <Clock className="h-3.5 w-3.5 text-cyan-500" />
+                      {c.durationWeeks} weeks
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 font-medium border border-slate-200/50 dark:bg-white/5 dark:border-white/5">
+                      <Layers className="h-3.5 w-3.5 text-cyan-500" />
+                      {moduleCount} modules · {lessonCount} lessons
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 font-medium border border-slate-200/50 dark:bg-white/5 dark:border-white/5">
+                      <Users className="h-3.5 w-3.5 text-cyan-500" />
+                      {c._count?.enrolledUsers ?? 0} enrolled
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-6 border-t border-slate-100 pt-4 dark:border-white/10">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <p className="font-display text-xl font-bold text-slate-900 dark:text-white">
-                    {naira(c.fullPrice)}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    or 2× {naira(c.halfPrice)}
-                  </p>
+              {/* Bottom Section: Pricing, Primary Curriculum Banner & Action Tiles */}
+              <div className="mt-6 border-t border-slate-100 pt-5 dark:border-white/10 space-y-3">
+                {/* Tuition & Installment Box */}
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-4 border border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-bold block">
+                      Full Tuition
+                    </span>
+                    <p className="font-display text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                      {naira(c.fullPrice)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-bold block">
+                      Installment Plan
+                    </span>
+                    <p className="text-sm font-bold text-cyan-600 dark:text-cyan-400 font-mono">
+                      2 × {naira(c.halfPrice)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
+
+                {/* Primary Action Banner: Manage Curriculum & Lessons */}
+                <button
+                  type="button"
+                  onClick={() => setManagingCurriculum(c)}
+                  className="group flex w-full items-center justify-between rounded-2xl border border-cyan-500/40 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent p-3.5 text-left transition-all hover:border-cyan-500 hover:from-cyan-500/20 hover:shadow-sm dark:border-cyan-500/30 dark:from-cyan-500/15"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-white shadow-md shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                          Curriculum & Lessons
+                        </span>
+                        <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-300 shrink-0">
+                          {moduleCount} {moduleCount === 1 ? 'module' : 'modules'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        Edit syllabus modules, video URLs, notes & resources
+                      </p>
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-1 text-xs font-bold text-cyan-600 dark:text-cyan-400 group-hover:translate-x-1 transition-transform pr-1 shrink-0 ml-2">
+                    Manage <ChevronRight className="h-4 w-4" />
+                  </span>
+                </button>
+
+                {/* Secondary Action Grid: Class Roster, Edit Course Details, Delete */}
+                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                  {/* Class Roster */}
+                  <button
+                    type="button"
+                    onClick={() => setViewingStudents(c)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50/50 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-cyan-300"
+                    title="View class roster & manage student enrollments"
+                  >
+                    <Users className="h-4 w-4 text-cyan-500 shrink-0" />
+                    <span className="truncate">Roster</span>
+                    <span className="rounded-full bg-slate-200/80 px-1.5 py-0.2 font-mono text-[10px] font-bold dark:bg-white/10 shrink-0">
+                      {c._count?.enrolledUsers ?? 0}
+                    </span>
+                  </button>
+
+                  {/* Edit Details */}
+                  <button
+                    type="button"
                     onClick={() => setEditing(c)}
-                    aria-label={`Edit ${c.title}`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50/50 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-cyan-300"
+                    title="Edit course title, description, level, and tuition"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                    <Pencil className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="truncate">Edit Details</span>
+                  </button>
+
+                  {/* Delete Course */}
+                  <button
+                    type="button"
                     onClick={() => {
-                      if (confirm(`Delete course ${c.title}?`)) remove.mutate(c.id);
+                      if (confirm(`Delete course "${c.title}"? This cannot be undone.`)) {
+                        remove.mutate(c.id);
+                      }
                     }}
-                    aria-label={`Delete ${c.title}`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-rose-200/80 bg-rose-50/50 px-3 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-600 hover:text-white dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-600 dark:hover:text-white"
+                    title="Delete course"
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                  </Button>
+                    <Trash2 className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Delete</span>
+                  </button>
                 </div>
               </div>
             </div>
-          </Card>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 && (
           <div className="col-span-full">
@@ -330,7 +1005,7 @@ export default function AdminCourses() {
         )}
       </div>
 
-      {/* Edit / Add Modal */}
+      {/* Edit / Add Course Modal */}
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}
@@ -341,6 +1016,38 @@ export default function AdminCourses() {
             key={editing.id ?? 'new-course'}
             draft={editing}
             onDone={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+
+      {/* Curriculum Manager Modal */}
+      <Modal
+        open={!!managingCurriculum}
+        onClose={() => setManagingCurriculum(null)}
+        title="Course Curriculum & Lessons"
+        wide
+      >
+        {managingCurriculum && (
+          <CurriculumModal
+            key={managingCurriculum.id}
+            course={managingCurriculum}
+            onClose={() => setManagingCurriculum(null)}
+          />
+        )}
+      </Modal>
+
+      {/* Enrolled Students Modal */}
+      <Modal
+        open={!!viewingStudents}
+        onClose={() => setViewingStudents(null)}
+        title="Class Roster & Students"
+        wide
+      >
+        {viewingStudents && (
+          <EnrolledStudentsModal
+            key={viewingStudents.id}
+            course={viewingStudents}
+            onClose={() => setViewingStudents(null)}
           />
         )}
       </Modal>
