@@ -39,22 +39,45 @@ export default function AdminOverview() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_320px]">
         <div>
-          <h2 className="mb-3 font-display text-lg font-bold">Recent telemetry</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse" />
+              Live Telemetry Stream
+            </h2>
+            <span className="font-mono text-xs text-slate-400">Hub Core System v2.4</span>
+          </div>
           <TelemetryConsole initial={data.logs} />
         </div>
         <div className="space-y-3">
-          <h2 className="mb-3 font-display text-lg font-bold">Needs attention</h2>
+          <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-white">Needs attention</h2>
           {[
-            { to: 'queue', icon: ListChecks, label: 'Action queue (proofs, orders, KYC)', count: data.pendingQueue },
-            { to: 'riders', icon: Bike, label: 'Rides awaiting dispatch', count: data.pendingRides },
+            { to: 'queue', icon: ListChecks, label: 'Action queue (proofs, orders, KYC)', count: data.pendingQueue, urgent: data.pendingQueue > 0 },
+            { to: 'riders', icon: Bike, label: 'Rides awaiting dispatch', count: data.pendingRides, urgent: data.pendingRides > 0 },
           ].map((a) => (
-            <Link key={a.to} to={a.to} className="glass group flex items-center gap-4 p-5 transition hover:border-cyan-500/40">
-              <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400"><a.icon className="h-5 w-5" /></span>
-              <span className="flex-1"><span className="block font-display text-2xl font-bold">{a.count}</span><span className="text-sm text-slate-500">{a.label}</span></span>
-              <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1" />
+            <Link
+              key={a.to}
+              to={a.to}
+              className="bento-card group flex items-center gap-4 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-500/50 hover:shadow-md"
+            >
+              <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 transition group-hover:scale-110">
+                <a.icon className="h-5 w-5" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-2">
+                  <span className="font-mono text-2xl font-extrabold text-slate-900 dark:text-white">{a.count}</span>
+                  {a.urgent && (
+                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                  )}
+                </span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{a.label}</span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-cyan-500" />
             </Link>
           ))}
-          <Card className="text-sm text-slate-500">Approving a payment proof automatically unlocks the course, booking, lounge order or plan it was paying for.</Card>
+          <Card variant="bento" className="border-cyan-500/20 bg-cyan-500/5 p-4 text-xs text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-cyan-700 dark:text-cyan-400 block mb-1">💡 Administrative Note:</span>
+            Approving a payment proof automatically unlocks the course, booking, lounge order or plan it was paying for without manual database edits.
+          </Card>
         </div>
       </div>
     </>

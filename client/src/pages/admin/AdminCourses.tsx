@@ -12,6 +12,7 @@ import {
 import { api, errorMessage } from '../../lib/api';
 import { formatDate, naira } from '../../lib/format';
 import { useSocketEvent } from '../../lib/socket';
+import { getCourseImage } from '../../lib/courseImages';
 import type { CourseModule, Lesson, LessonResource } from '../../lib/types';
 import { toast } from '../../store/toast';
 
@@ -811,17 +812,17 @@ export default function AdminCourses() {
       {/* Search */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search course title, level, keywords…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/5"
+            className="field rounded-full pl-10 text-sm"
           />
         </div>
-        <p className="text-xs text-slate-500">
-          Tuition, lesson videos, and curriculum updates reflect live in the <strong>Classroom</strong>.
+        <p className="text-xs text-slate-500 font-mono">
+          <span className="text-cyan-500">●</span> Tuition, lesson videos, and curriculum updates reflect live in the <strong className="text-slate-700 dark:text-slate-300">Classroom</strong>.
         </p>
       </div>
 
@@ -844,33 +845,42 @@ export default function AdminCourses() {
           return (
             <div
               key={c.id}
-              className="relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white/90 p-6 sm:p-7 shadow-sm transition-all hover:border-cyan-500/50 hover:shadow-xl dark:border-white/10 dark:bg-slate-900/90 dark:backdrop-blur-xl"
+              className="bento-card group relative flex flex-col justify-between overflow-hidden p-0 transition-all hover:border-blue-500/50 hover:shadow-blue-500/10"
             >
               <div>
-                {/* Header Row: Icon, Badges, & Preview */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25">
-                      <GraduationCap className="h-6 w-6" />
+                {/* Course Photography Header Banner */}
+                <div className="relative h-40 w-full overflow-hidden bg-slate-900">
+                  <img
+                    src={getCourseImage(c.slug, c.title)}
+                    alt={c.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+
+                  {/* Overlay Badges */}
+                  <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/90 text-white backdrop-blur-md shadow-md">
+                      <GraduationCap className="h-4 w-4" />
                     </span>
-                    <div>
-                      <Badge tone="cyan">{c.level}</Badge>
-                    </div>
+                    <Badge tone="blue">{c.level}</Badge>
                   </div>
 
-                  <Link
-                    to={`/app/academy/${c.id}`}
-                    target="_blank"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-500 hover:bg-cyan-50/50 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-cyan-300"
-                    title="Preview student classroom view"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    <span>Preview Classroom</span>
-                  </Link>
+                  <div className="absolute top-3.5 right-3.5">
+                    <Link
+                      to={`/app/academy/${c.id}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition hover:border-blue-400 hover:bg-blue-600/80"
+                      title="Preview student classroom view"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>Preview</span>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Course Title & Description */}
-                <div className="mt-4">
+                <div className="p-6 pb-2">
                   <h3 className="font-display text-xl font-bold text-slate-900 dark:text-white leading-snug">
                     {c.title}
                   </h3>
@@ -879,7 +889,7 @@ export default function AdminCourses() {
                   </p>
 
                   {/* Course Metadata Badges */}
-                  <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 font-medium border border-slate-200/50 dark:bg-white/5 dark:border-white/5">
                       <Clock className="h-3.5 w-3.5 text-cyan-500" />
                       {c.durationWeeks} weeks
@@ -897,7 +907,8 @@ export default function AdminCourses() {
               </div>
 
               {/* Bottom Section: Pricing, Primary Curriculum Banner & Action Tiles */}
-              <div className="mt-6 border-t border-slate-100 pt-5 dark:border-white/10 space-y-3">
+              <div className="p-6 pt-0">
+                <div className="mt-4 border-t border-slate-100 pt-4 dark:border-white/10 space-y-3">
                 {/* Tuition & Installment Box */}
                 <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-4 border border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5">
                   <div>
@@ -912,7 +923,7 @@ export default function AdminCourses() {
                     <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-bold block">
                       Installment Plan
                     </span>
-                    <p className="text-sm font-bold text-cyan-600 dark:text-cyan-400 font-mono">
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
                       2 × {naira(c.halfPrice)}
                     </p>
                   </div>
@@ -922,10 +933,10 @@ export default function AdminCourses() {
                 <button
                   type="button"
                   onClick={() => setManagingCurriculum(c)}
-                  className="group flex w-full items-center justify-between rounded-2xl border border-cyan-500/40 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent p-3.5 text-left transition-all hover:border-cyan-500 hover:from-cyan-500/20 hover:shadow-sm dark:border-cyan-500/30 dark:from-cyan-500/15"
+                  className="group flex w-full items-center justify-between rounded-2xl border border-blue-500/40 bg-blue-50/60 p-3.5 text-left transition-all hover:border-blue-500 hover:bg-blue-100/60 hover:shadow-sm dark:border-blue-500/30 dark:bg-blue-950/20 dark:hover:bg-blue-900/30"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-white shadow-md shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/30 group-hover:scale-105 transition-transform">
                       <Layers className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
@@ -933,7 +944,7 @@ export default function AdminCourses() {
                         <span className="text-sm font-bold text-slate-900 dark:text-white">
                           Curriculum & Lessons
                         </span>
-                        <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-300 shrink-0">
+                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[11px] font-mono font-bold text-blue-700 dark:text-blue-300 shrink-0">
                           {moduleCount} {moduleCount === 1 ? 'module' : 'modules'}
                         </span>
                       </div>
@@ -942,7 +953,7 @@ export default function AdminCourses() {
                       </p>
                     </div>
                   </div>
-                  <span className="flex items-center gap-1 text-xs font-bold text-cyan-600 dark:text-cyan-400 group-hover:translate-x-1 transition-transform pr-1 shrink-0 ml-2">
+                  <span className="flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform pr-1 shrink-0 ml-2">
                     Manage <ChevronRight className="h-4 w-4" />
                   </span>
                 </button>
@@ -991,7 +1002,8 @@ export default function AdminCourses() {
                 </div>
               </div>
             </div>
-          );
+          </div>
+        );
         })}
 
         {filtered.length === 0 && (

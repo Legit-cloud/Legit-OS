@@ -252,7 +252,7 @@ export default function BroadcastCenter() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* ── Left Column: Broadcast Composer ── */}
         <div className="lg:col-span-7 space-y-6">
-          <Card className="p-6">
+          <Card variant="bento" className="p-6">
             <form onSubmit={handleSend} className="space-y-6">
               {/* Delivery Format / Type */}
               <div>
@@ -572,7 +572,7 @@ export default function BroadcastCenter() {
 
         {/* ── Right Column: Live Device Simulator / Preview ── */}
         <div className="lg:col-span-5 space-y-6">
-          <Card className="p-5">
+          <Card variant="bento" className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-cyan-500" />
@@ -698,7 +698,7 @@ export default function BroadcastCenter() {
                         severity === 'URGENT' && 'bg-gradient-to-r from-rose-500 to-red-600',
                         severity === 'WARNING' && 'bg-gradient-to-r from-amber-500 to-orange-500',
                         severity === 'SUCCESS' && 'bg-gradient-to-r from-emerald-500 to-teal-600',
-                        severity === 'INFO' && 'bg-gradient-to-r from-cyan-500 to-blue-600',
+                        severity === 'INFO' && 'bg-blue-600',
                       )}
                     />
                     <div className="p-4 space-y-3">
@@ -746,7 +746,7 @@ export default function BroadcastCenter() {
       </div>
 
       {/* ── Sent Broadcasts History ── */}
-      <Card className="p-6">
+      <Card variant="bento" className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
             <h3 className="font-display text-lg font-bold">Broadcast Dispatch History</h3>

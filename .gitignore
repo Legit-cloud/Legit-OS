@@ -6,3 +6,4 @@ server/prisma/*.db-journal
 server/uploads/*
 !server/uploads/.gitkeep
 *.log
+.agents/

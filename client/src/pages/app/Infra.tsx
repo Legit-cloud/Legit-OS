@@ -18,6 +18,15 @@ const FACILITY_ICONS: Record<string, typeof Building2> = {
   Classroom: School,
 };
 
+const FACILITY_PHOTOS: Record<string, string> = {
+  'Media Studio': 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=800&q=80',
+  'Private Office': 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+  'Conference Room': 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
+  Classroom: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+};
+
+const DESK_PHOTO = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80';
+
 function Section({ title, subtitle, children }: { title: React.ReactNode; subtitle: string; children: React.ReactNode }) {
   return (
     <section className="mt-10 first:mt-0">
@@ -138,71 +147,107 @@ function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
   const isAvailable = desk.availableUnits === undefined || desk.availableUnits > 0;
 
   return (
-    <Card className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
-      <div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-full border border-slate-200 p-1 dark:border-white/10" role="radiogroup" aria-label="Desk plan">
-            {(['hour', 'day'] as const).filter((m) => desks.some((d) => d.unit === m)).map((m) => (
-              <button
-                key={m}
-                role="radio"
-                aria-checked={mode === m}
-                onClick={() => { setMode(m); setQty(m === 'hour' ? 2 : 1); }}
-                className={cn('rounded-full px-5 py-2 text-sm font-semibold transition', mode === m ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300')}
-              >
-                {m === 'hour' ? 'Hourly rate' : 'Day pass'}
-              </button>
-            ))}
+    <Card variant="bento" className="overflow-hidden p-0 sm:p-0">
+      <div className="grid lg:grid-cols-12 gap-0">
+        <div className="relative lg:col-span-5 h-56 sm:h-64 lg:h-auto min-h-[220px] overflow-hidden">
+          <img
+            src={DESK_PHOTO}
+            alt="Ergonomic Hot Desks at L.E.G.I.T Innovation Hub"
+            className="h-full w-full object-cover object-center"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-slate-950/90" />
+          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
+              ⚡ 1 Gbps Fiber
+            </span>
+            <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
+              🔋 24/7 Redundant Power
+            </span>
+            <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
+              🪑 Ergonomic Seating
+            </span>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
-            {mode === 'hour' ? 'Book flexible hours' : 'Full-day access pass'}
-          </span>
         </div>
 
-        <div className="mt-5 flex items-start gap-4">
-          <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 shrink-0"><Armchair className="h-6 w-6" /></span>
+        <div className="p-6 sm:p-8 lg:col-span-7 flex flex-col justify-between gap-6">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-display text-lg font-bold">{desk.name}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex rounded-full border border-slate-200 p-1 dark:border-white/10 bg-slate-100/50 dark:bg-white/5" role="radiogroup" aria-label="Desk plan">
+                {(['hour', 'day'] as const).filter((m) => desks.some((d) => d.unit === m)).map((m) => (
+                  <button
+                    key={m}
+                    role="radio"
+                    aria-checked={mode === m}
+                    onClick={() => { setMode(m); setQty(m === 'hour' ? 2 : 1); }}
+                    className={cn(
+                      'rounded-full px-5 py-2 text-xs sm:text-sm font-semibold transition',
+                      mode === m ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
+                    )}
+                  >
+                    {m === 'hour' ? 'Hourly rate' : 'Day pass'}
+                  </button>
+                ))}
+              </div>
+
               {desk.availableUnits !== undefined && (
                 <span className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                  isAvailable ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
+                  isAvailable ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                 )}>
                   <span className={cn('h-1.5 w-1.5 rounded-full', isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500')} />
-                  {isAvailable ? `${desk.availableUnits} of ${desk.maxCapacity ?? 10} available` : 'Fully booked'}
+                  {isAvailable ? `${desk.availableUnits} of ${desk.maxCapacity ?? 10} desks open` : 'Fully booked'}
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-500">{desk.description}</p>
-            <p className="mt-1 font-semibold text-cyan-600 dark:text-cyan-400">{naira(desk.price)} / {desk.unit}</p>
+
+            <div className="mt-5 flex items-start gap-4">
+              <span className="rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 p-3 shrink-0">
+                <Armchair className="h-6 w-6" />
+              </span>
+              <div>
+                <p className="font-display text-xl font-bold text-slate-900 dark:text-white">{desk.name}</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{desk.description}</p>
+                <p className="mt-2 font-mono text-lg font-bold text-blue-600 dark:text-blue-400">
+                  {naira(desk.price)} <span className="font-sans text-xs font-normal text-slate-400">/ {desk.unit}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Select duration</span>
+              <Stepper
+                value={qty}
+                onChange={setQty}
+                max={mode === 'hour' ? 12 : 30}
+                label={`${mode}s`}
+                unit={mode === 'hour' ? 'hr' : 'day'}
+              />
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-end gap-5">
+              <div className="text-left sm:text-right">
+                <p className="text-xs text-slate-400 font-medium font-mono">
+                  {naira(desk.price)} × {qty} {mode === 'hour' ? 'hr' : 'day'}{qty > 1 ? 's' : ''}
+                </p>
+                <p className="font-display text-2xl font-extrabold text-slate-900 dark:text-white">
+                  {naira(desk.price * qty)}
+                </p>
+              </div>
+
+              <Button
+                disabled={!isAvailable}
+                loading={book.isPending}
+                onClick={() => book.mutate({ itemId: desk.id, quantity: qty })}
+                className="px-6 py-2.5"
+              >
+                {isAvailable ? 'Reserve desk' : 'Fully booked'}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col items-start gap-3.5 md:items-end">
-        <div className="flex flex-col items-start md:items-end gap-1.5">
-          <Stepper
-            value={qty}
-            onChange={setQty}
-            max={mode === 'hour' ? 12 : 30}
-            label={`${mode}s`}
-            unit={mode === 'hour' ? 'hr' : 'day'}
-          />
-        </div>
-
-        <div className="text-left md:text-right">
-          <p className="text-xs text-slate-500 font-medium">
-            {naira(desk.price)} × {qty} {mode === 'hour' ? 'hour' : 'day'}{qty > 1 ? 's' : ''}
-          </p>
-          <p className="font-display text-2xl font-bold text-slate-900 dark:text-white">
-            {naira(desk.price * qty)}
-          </p>
-        </div>
-
-        <Button disabled={!isAvailable} loading={book.isPending} onClick={() => book.mutate({ itemId: desk.id, quantity: qty })}>
-          {isAvailable ? 'Reserve desk' : 'Fully booked'}
-        </Button>
       </div>
     </Card>
   );
@@ -214,7 +259,7 @@ const LOUNGE_COMING_SOON = true;
 function LoungeComingSoonCover() {
   return (
     <Card className="relative overflow-hidden p-8 sm:p-12 text-center">
-      <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-blue-500/5 pointer-events-none" />
       <div className="relative mx-auto max-w-2xl">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
           <UtensilsCrossed className="h-8 w-8" />
@@ -435,28 +480,55 @@ export default function Infra() {
           {(by.FACILITY ?? []).map((f) => {
             const Icon = FACILITY_ICONS[f.name] ?? Building2;
             const isFull = f.availableUnits !== undefined && f.availableUnits <= 0;
+            const photo = FACILITY_PHOTOS[f.name] ?? DESK_PHOTO;
             return (
-              <Card key={f.id} className="flex flex-col">
-                <div className="flex items-center justify-between">
-                  <span className="w-fit rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 p-3 text-white"><Icon className="h-5 w-5" /></span>
-                  {f.availableUnits !== undefined && (
-                    <span className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                      !isFull
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                    )}>
-                      <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
-                      {!isFull ? `${f.availableUnits} available` : 'Booked'}
+              <Card key={f.id} variant="bento" className="flex flex-col overflow-hidden p-0 sm:p-0 group">
+                <div className="relative h-40 w-full overflow-hidden bg-slate-900">
+                  <img
+                    src={photo}
+                    alt={f.name}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                    <span className="w-fit rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 p-2 text-white">
+                      <Icon className="h-4 w-4" />
                     </span>
-                  )}
+                    {f.availableUnits !== undefined && (
+                      <span className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-md',
+                        !isFull
+                          ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'
+                      )}>
+                        <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-400' : 'bg-rose-400')} />
+                        {!isFull ? `${f.availableUnits} open` : 'Booked'}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-4 font-display text-lg font-bold">{f.name}</p>
-                <p className="flex-1 text-sm text-slate-500">{f.description}</p>
-                <p className="mt-3 font-semibold">{naira(f.price)}<span className="text-sm font-normal text-slate-500">/{f.unit}</span></p>
-                <Button size="sm" className="mt-3" disabled={isFull} onClick={() => setSelected(f)}>
-                  {isFull ? 'Fully booked' : 'Book'}
-                </Button>
+
+                <div className="flex flex-1 flex-col p-5">
+                  <p className="font-display text-lg font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                    {f.name}
+                  </p>
+                  <p className="mt-1 flex-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {f.description}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                    <p className="font-mono text-base font-bold text-slate-900 dark:text-white">
+                      {naira(f.price)} <span className="font-sans text-xs font-normal text-slate-400">/{f.unit}</span>
+                    </p>
+                    <Button
+                      size="sm"
+                      disabled={isFull}
+                      onClick={() => setSelected(f)}
+                    >
+                      {isFull ? 'Fully booked' : 'Book space'}
+                    </Button>
+                  </div>
+                </div>
               </Card>
             );
           })}
@@ -466,14 +538,21 @@ export default function Infra() {
       <Section title="Hub Programs" subtitle="Monthly program subscriptions for founders and builders.">
         <div className="grid gap-4 md:grid-cols-2">
           {(by.PROGRAM ?? []).map((p) => (
-            <Card key={p.id} className="relative overflow-hidden">
-              <Sparkles className="absolute -right-3 -top-3 h-24 w-24 text-cyan-500/10" />
-              <Badge tone="cyan">Subscription</Badge>
-              <p className="mt-3 font-display text-xl font-bold">{p.name}</p>
-              <p className="text-sm text-slate-500">{p.description}</p>
-              <div className="mt-4 flex items-center justify-between">
-                <p className="font-display text-2xl font-bold">{naira(p.price)}<span className="text-sm font-normal text-slate-500">/month</span></p>
-                <Button loading={book.isPending && book.variables?.itemId === p.id} onClick={() => book.mutate({ itemId: p.id, quantity: 1 })}>Subscribe</Button>
+            <Card key={p.id} variant="bento" className="relative overflow-hidden group">
+              <Sparkles className="absolute -right-3 -top-3 h-28 w-28 text-cyan-500/10 pointer-events-none transition group-hover:scale-110 group-hover:text-cyan-500/20" />
+              <Badge tone="cyan">Incubation & Residency</Badge>
+              <p className="mt-3 font-display text-xl font-bold text-slate-900 dark:text-white">{p.name}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{p.description}</p>
+              <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
+                <p className="font-display text-2xl font-extrabold text-slate-900 dark:text-white">
+                  {naira(p.price)}<span className="font-sans text-xs font-normal text-slate-400"> /month</span>
+                </p>
+                <Button
+                  loading={book.isPending && book.variables?.itemId === p.id}
+                  onClick={() => book.mutate({ itemId: p.id, quantity: 1 })}
+                >
+                  Join Residency
+                </Button>
               </div>
             </Card>
           ))}
@@ -481,31 +560,40 @@ export default function Infra() {
       </Section>
 
       <Section title="Hardware Rentals" subtitle="Rent high-spec workstations and laptops for your projects.">
-        <Card className="p-0 sm:p-0">
+        <Card variant="bento" className="p-0 sm:p-0 overflow-hidden">
           <ul className="divide-y divide-slate-200 dark:divide-white/10">
             {(by.HARDWARE ?? []).map((h) => {
               const isFull = h.availableUnits !== undefined && h.availableUnits <= 0;
               return (
-                <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                  <Laptop className="h-6 w-6 text-cyan-500" />
+                <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/[0.02]">
+                  <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <Laptop className="h-6 w-6" />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{h.name}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">{h.name}</p>
                       {h.availableUnits !== undefined && (
                         <span className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
-                          !isFull ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          !isFull ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                         )}>
                           <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
-                          {!isFull ? `${h.availableUnits} of ${h.maxCapacity ?? 10} available` : 'All rented'}
+                          {!isFull ? `${h.availableUnits} of ${h.maxCapacity ?? 10} units ready` : 'All rented'}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-500">{h.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{h.description}</p>
                   </div>
-                  <p className="font-semibold">{naira(h.price)}<span className="text-sm font-normal text-slate-500">/{h.unit}</span></p>
-                  <Button size="sm" variant="outline" disabled={isFull} onClick={() => setSelected(h)}>
-                    {isFull ? 'Unavailable' : 'Rent'}
+                  <p className="font-mono font-bold text-slate-900 dark:text-white">
+                    {naira(h.price)}<span className="font-sans text-xs font-normal text-slate-400">/{h.unit}</span>
+                  </p>
+                  <Button
+                    size="sm"
+                    variant={isFull ? 'outline' : 'primary'}
+                    disabled={isFull}
+                    onClick={() => setSelected(h)}
+                  >
+                    {isFull ? 'Unavailable' : 'Rent device'}
                   </Button>
                 </li>
               );

@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { timeAgo } from '../lib/format';
 import type { Notification } from '../lib/types';
 import { Logo, cn } from './ui';
+import { ThemeToggle } from './ThemeToggle';
 import {
   isSoundEnabled,
   toggleSound,
@@ -97,11 +98,11 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
               title={collapsed ? `${n.label}${n.badge && n.badge > 0 ? ` (${n.badge} unattended)` : ''}` : undefined}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition',
+                  'flex items-center gap-3 rounded-2xl py-2.5 text-sm font-medium transition-all duration-200',
                   collapsed ? 'justify-center px-0 w-10 mx-auto' : 'px-3.5',
                   isActive
-                    ? 'bg-gradient-to-r from-cyan-500/15 to-blue-600/10 text-cyan-700 ring-1 ring-cyan-500/30 dark:text-cyan-300'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+                    ? 'bg-blue-50 text-blue-700 font-semibold ring-1 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-400/30 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.04] dark:hover:text-slate-200',
                 )
               }
             >
@@ -146,7 +147,7 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
                       ? 'bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 shadow-rose-500/40 ring-1 ring-white/20'
                       : n.badgeTone === 'amber'
                       ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/30 ring-1 ring-white/20'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-500/30'
+                      : 'bg-blue-600 shadow-blue-500/30'
                   )}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
@@ -162,16 +163,16 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
   );
 
   return (
-    <div className="min-h-screen">
-      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r border-slate-200 bg-white/70 backdrop-blur-xl lg:block transition-all duration-300 dark:border-white/10 dark:bg-slate-950/60', collapsed ? 'w-20' : 'w-64')}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#07090e] dark:text-slate-100 transition-colors duration-200">
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r border-slate-200/80 bg-white/90 backdrop-blur-2xl lg:block transition-all duration-300 dark:border-white/10 dark:bg-[#07090e]/95', collapsed ? 'w-20' : 'w-64')}>
         {sidebar}
       </aside>
       <AnimatePresence>
         {open && (
           <>
-            <motion.div className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
+            <motion.div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-white lg:hidden dark:bg-slate-950"
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-white/95 border-r border-slate-200 backdrop-blur-2xl lg:hidden dark:bg-[#07090e] dark:border-white/10"
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
@@ -184,7 +185,7 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
       </AnimatePresence>
 
       <div className={cn('transition-all duration-300', collapsed ? 'lg:pl-20' : 'lg:pl-64')}>
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-[#05070d]/80">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-[#07090e]/85">
           <button className="rounded-full p-2 text-slate-600 hover:bg-slate-200/60 lg:hidden dark:text-slate-300 dark:hover:bg-white/10" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
           <span className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-400">
             <span className="relative flex h-2 w-2">
@@ -193,7 +194,8 @@ export function Shell({ nav, title, topRight, footer, children }: { nav: NavItem
             </span>
             SYSTEM ONLINE
           </span>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             {topRight}
           </div>
         </header>

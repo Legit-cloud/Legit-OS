@@ -105,7 +105,7 @@ export default function HubAssets() {
         }))}
       />
 
-      <Card className="mt-4 overflow-x-auto p-0 sm:p-0">
+      <Card variant="bento" className="mt-4 overflow-x-auto p-0 sm:p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wider text-slate-500">
             <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Live Capacity & Status</th><th /></tr>
@@ -143,7 +143,7 @@ export default function HubAssets() {
       </Card>
 
       <h2 className="mb-3 mt-10 font-display text-lg font-bold">Open bookings</h2>
-      <Card className="overflow-x-auto p-0 sm:p-0">
+      <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wider text-slate-500">
             <tr><th className="px-5 py-3">Member</th><th className="px-5 py-3">Asset</th><th className="px-5 py-3">Qty</th><th className="px-5 py-3">Amount</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Session</th></tr>

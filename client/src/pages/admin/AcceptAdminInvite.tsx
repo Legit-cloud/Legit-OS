@@ -124,12 +124,12 @@ export default function AcceptAdminInvite() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-12 text-slate-100 sm:px-6">
       {/* Background ambient lighting */}
-      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[130px]" />
+      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[130px]" />
       <div className="pointer-events-none absolute -right-40 -bottom-40 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[130px]" />
 
       <div className="mx-auto max-w-lg">
         <div className="mb-8 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-cyan-400 transition">
+          <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-blue-400 transition">
             <ArrowLeft className="h-4 w-4" /> Back to hub
           </Link>
           <Logo />
@@ -142,7 +142,7 @@ export default function AcceptAdminInvite() {
           className="rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl backdrop-blur-2xl sm:p-8"
         >
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-bold text-cyan-400">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400">
               <ShieldCheck className="h-4 w-4" />
               <span>OFFICIAL ADMIN INVITATION</span>
             </div>
@@ -161,7 +161,7 @@ export default function AcceptAdminInvite() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Admin Email:</span>
-              <span className="font-mono text-cyan-400">{invite.email}</span>
+              <span className="font-mono text-blue-400">{invite.email}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Privilege Level:</span>
@@ -187,11 +187,11 @@ export default function AcceptAdminInvite() {
                   value={currentUsername}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                   placeholder="your-name"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 py-3 pl-20 pr-4 font-mono text-sm text-cyan-300 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 py-3 pl-20 pr-4 font-mono text-sm text-blue-300 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <p className="mt-1 font-mono text-[11px] text-slate-400">
-                Your portal will load at: <span className="text-cyan-400 font-bold">/admin/{currentUsername || 'handle'}</span>
+                Your portal will load at: <span className="text-blue-400 font-bold">/admin/{currentUsername || 'handle'}</span>
               </p>
             </Field>
 
@@ -204,7 +204,7 @@ export default function AcceptAdminInvite() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 p-3.5 pr-11 text-sm text-white outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 p-3.5 pr-11 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   type="button"
@@ -225,7 +225,7 @@ export default function AcceptAdminInvite() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 p-3.5 text-sm text-white outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 p-3.5 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </Field>
 
@@ -233,7 +233,7 @@ export default function AcceptAdminInvite() {
               <Button
                 type="submit"
                 disabled={submitting || !password || !confirmPassword}
-                className="w-full justify-center bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-sm font-bold shadow-lg shadow-cyan-500/25"
+                className="w-full justify-center bg-blue-600 hover:bg-blue-700 py-3.5 text-sm font-bold shadow-lg shadow-blue-500/25 transition-colors"
               >
                 {submitting ? (
                   'Activating Command Account…'

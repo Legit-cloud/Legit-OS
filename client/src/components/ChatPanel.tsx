@@ -103,7 +103,7 @@ export function ChatPanel({ channelKey, title, subtitle }: { channelKey: string;
                     <p
                       className={cn(
                         'inline-block whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-left text-sm',
-                        mine ? 'rounded-tr-sm bg-gradient-to-r from-cyan-500 to-blue-600 text-white' : 'rounded-tl-sm bg-slate-100 dark:bg-white/[0.06]',
+                        mine ? 'rounded-tr-sm bg-blue-600 text-white' : 'rounded-tl-sm bg-slate-100 text-slate-800 dark:bg-white/[0.06] dark:text-slate-200',
                       )}
                     >
                       {m.content}
@@ -129,7 +129,7 @@ export function ChatPanel({ channelKey, title, subtitle }: { channelKey: string;
         <button
           type="submit"
           disabled={!text.trim() || sending}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-40 transition-colors"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />

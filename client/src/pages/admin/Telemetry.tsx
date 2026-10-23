@@ -85,13 +85,16 @@ export default function Telemetry() {
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => setSelectedId(null)}>← Back to Devices</Button>
         </div>
-        <Card className="p-8">
+        <Card variant="bento" className="p-8">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-500 bg-clip-text text-transparent">
-                {device.hostname}
-              </h2>
-              <div className="mt-4 flex gap-6 text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-blue-600 animate-pulse" />
+                <h2 className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+                  {device.hostname}
+                </h2>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400 font-mono">
                 <span>Serial: <strong className="text-slate-900 dark:text-white">{device.serial_number}</strong></span>
                 <span>Model: <strong className="text-slate-900 dark:text-white">{device.manufacturer} {device.model}</strong></span>
                 <span>Added: <strong className="text-slate-900 dark:text-white">{new Date(device.created_at_utc).toLocaleDateString()}</strong></span>
@@ -115,7 +118,7 @@ export default function Telemetry() {
         </Card>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="p-6">
+          <Card variant="bento" className="p-6">
             <h3 className="font-semibold uppercase tracking-wider text-slate-500 text-xs flex items-center gap-2 mb-4">
               <Shield className="h-4 w-4 text-cyan-500" /> Current Session
             </h3>
@@ -131,7 +134,7 @@ export default function Telemetry() {
               <p className="text-slate-500 italic">No active user session on this device.</p>
             )}
           </Card>
-          <Card className="p-6 md:col-span-2">
+          <Card variant="bento" className="p-6 md:col-span-2">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-semibold uppercase tracking-wider text-slate-500 text-xs flex items-center gap-2">
                 <History className="h-4 w-4 text-cyan-500" /> Device History
@@ -238,18 +241,18 @@ export default function Telemetry() {
 
       <div className="mb-6 flex gap-3 max-w-md">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search Serial or Hostname..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-4 outline-none focus:border-cyan-500 dark:border-slate-800 dark:bg-slate-900"
+            className="field rounded-full pl-10 text-sm"
           />
         </div>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card variant="bento" className="overflow-hidden p-0 sm:p-0">
         {isLoading ? (
           <div className="p-12"><Loading /></div>
         ) : (

@@ -23,40 +23,49 @@ function AdminProfileDrawer({ open, onClose }: { open: boolean; onClose: () => v
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="fixed inset-0 z-40 bg-slate-950/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.aside
-            className="fixed right-4 top-20 z-50 flex h-fit max-h-[calc(100vh-6rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl dark:border-white/10 dark:bg-[#05070d]"
+            className="fixed right-4 top-20 z-50 flex h-fit max-h-[calc(100vh-6rem)] w-[min(380px,calc(100vw-2rem))] flex-col overflow-y-auto rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-2xl backdrop-blur-2xl dark:border-cyan-500/20 dark:bg-[#07090e]/95 dark:shadow-cyan-950/40"
             initial={{ opacity: 0, x: 20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-cyan-600 dark:text-cyan-400">Admin Command Center</p>
-              <button onClick={onClose} className="rounded-full p-1.5 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Close profile"><X className="h-5 w-5" /></button>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">Admin Command Center</p>
+              </div>
+              <button onClick={onClose} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Close profile"><X className="h-4 w-4" /></button>
             </div>
-            <div className="mt-6 flex items-center gap-4">
+            <div className="mt-5 flex items-center gap-4">
               <Avatar name={user.fullName} size="lg" />
               <div className="min-w-0">
-                <p className="truncate font-display text-lg font-bold">{user.fullName}</p>
-                <p className="truncate font-mono text-xs font-semibold text-cyan-600 dark:text-cyan-400">@{user.username || 'admin'}</p>
+                <p className="truncate font-display text-lg font-bold text-slate-900 dark:text-white">{user.fullName}</p>
+                <p className="truncate font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">@{user.username || 'admin'}</p>
                 <p className="truncate text-xs text-slate-500">{user.email}</p>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  <Badge tone="cyan">ADMINISTRATOR</Badge>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Badge tone="blue">ADMINISTRATOR</Badge>
                   <Badge tone="green"><ShieldCheck className="h-3 w-3" /> Full Privileges</Badge>
                 </div>
               </div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                <p className="mt-2 font-display text-2xl font-bold">{user.points}</p>
-                <p className="text-xs text-slate-500">Hub points</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="flex items-center gap-2 text-amber-500">
+                  <Trophy className="h-4 w-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Points</span>
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-slate-900 dark:text-white">{user.points}</p>
+                <p className="text-[11px] text-slate-500">Hub points</p>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                <Flame className="h-5 w-5 text-orange-500" />
-                <p className="mt-2 font-display text-2xl font-bold">{user.streakDays}d</p>
-                <p className="text-xs text-slate-500">Active streak</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="flex items-center gap-2 text-orange-500">
+                  <Flame className="h-4 w-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Streak</span>
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-slate-900 dark:text-white">{user.streakDays}d</p>
+                <p className="text-[11px] text-slate-500">Active streak</p>
               </div>
             </div>
             <Button variant="danger" className="mt-6 w-full" onClick={() => logout()}><LogOut className="h-4 w-4" /> Sign out</Button>
@@ -136,7 +145,7 @@ export default function AdminLayout() {
             <Avatar name={user.fullName} size="sm" />
             <span className="hidden text-left sm:block">
               <span className="block text-sm font-semibold leading-tight">{user.fullName.split(' ')[0]}</span>
-              <span className="block text-[11px] leading-tight text-cyan-600 dark:text-cyan-400 font-bold font-mono">@{user.username || 'admin'}</span>
+              <span className="block text-[11px] leading-tight text-blue-600 dark:text-blue-400 font-bold font-mono">@{user.username || 'admin'}</span>
             </span>
           </button>
         </>

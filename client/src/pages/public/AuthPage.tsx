@@ -22,6 +22,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Button, Field, Logo, cn } from '../../components/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { api, errorMessage } from '../../lib/api';
 import { useSocketEvent } from '../../lib/socket';
 import type { User } from '../../lib/types';
@@ -129,10 +130,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     }
   }, [user?.status, step]);
 
-  const destination = (u: User) => {
+  const destination = (_u?: User) => {
     const next = params.get('next');
-    if (next?.startsWith('/admin') && u.role !== 'ADMIN') return '/app';
-    return next ?? (u.role === 'ADMIN' ? '/admin' : '/app');
+    if (next && next.startsWith('/app')) return next;
+    return '/app';
   };
 
   // Check immediately on mount if token exists
@@ -535,30 +536,78 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   const activeIdTypeLabel = ID_TYPES.find((t) => t.id === form.idType)?.label || form.idType;
 
+  const isSplitLayout = (mode === 'login' || step === 'form') && step !== 'pending';
+
   return (
-    <div className="relative grid min-h-screen place-items-center overflow-hidden px-4 py-16">
-      <div className="grid-bg absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
-      <div className="absolute left-1/2 top-1/3 h-80 w-[560px] -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[120px]" />
-      <div className="absolute left-4 right-4 top-4 flex items-center justify-between z-20">
-        <Link to="/" className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-cyan-600 dark:text-slate-300">
-          <ArrowLeft className="h-4 w-4" /> Back to site
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-16 bg-slate-50 text-slate-900 dark:bg-[#07090e] dark:text-slate-100 transition-colors duration-200">
+      <div className="light-mesh dark:scanline-grid absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
+      <div className="absolute left-1/2 top-1/3 h-80 w-[600px] -translate-x-1/2 rounded-full bg-blue-500/10 blur-[140px] pointer-events-none dark:bg-blue-500/15" />
+
+      <div className="absolute left-4 right-4 top-4 flex items-center justify-between z-20 max-w-6xl mx-auto w-full">
+        <Link to="/" className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition">
+          <ArrowLeft className="h-4 w-4" /> Back to hub
         </Link>
-        {step === 'pending' && token && (
-          <button
-            onClick={() => {
-              clear();
-              setStep('form');
-              navigate('/login', { replace: true });
-            }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-rose-500 transition"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {step === 'pending' && token && (
+            <button
+              onClick={() => {
+                clear();
+                setStep('form');
+                navigate('/login', { replace: true });
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 transition cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </button>
+          )}
+        </div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass relative w-full max-w-lg p-6 sm:p-8 z-10">
-        <Logo />
+      <div className={cn("relative z-10 w-full", isSplitLayout ? "max-w-5xl grid lg:grid-cols-[1fr_1.1fr] gap-8 items-center" : "max-w-lg mx-auto")}>
+        {isSplitLayout && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="hidden lg:flex flex-col justify-between h-full rounded-3xl overflow-hidden border border-white/10 relative p-8 shadow-2xl min-h-[580px]"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"
+              alt="African software developers collaborating at L.E.G.I.T Hub in Ibadan"
+              className="absolute inset-0 h-full w-full object-cover brightness-[0.55] contrast-[1.05]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-[#07090e]/60 to-transparent" />
+            <div className="relative z-10">
+              <span className="pill bg-[#0d111a]/80 backdrop-blur-md border-cyan-400/30 text-cyan-300">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-400" /> Secure Terminal Gateway
+              </span>
+              <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white leading-snug">
+                Ibadan's Launchpad for Technical Founders
+              </h2>
+              <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+                Join 550+ innovators, GPU compute clusters, and startup cohorts scaling digital products across Africa.
+              </p>
+            </div>
+
+            <div className="relative z-10 space-y-3 pt-6 border-t border-white/10 font-mono text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <span>Biometric ID & KYC Verification</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+                <span>24/7 Workspace & High-Performance Lab Access</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+                <span>Direct Investor Readiness & Placement</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bento-card p-6 sm:p-8 w-full">
+          <Logo />
 
         {/* Header Title */}
         {mode === 'login' ? (
@@ -930,7 +979,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                             <button
                               type="button"
                               onClick={capturePhoto}
-                              className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-7 py-2.5 font-bold text-sm text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer border border-white/30"
+                              className="group flex items-center gap-2 rounded-full bg-blue-600 px-7 py-2.5 font-bold text-sm text-white shadow-md shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer border border-white/20"
                             >
                               <Camera className="h-4 w-4 group-hover:scale-110 transition-transform" /> Snap Face Photo
                             </button>
@@ -1388,7 +1437,8 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             admin@legithub.com / Admin@12345
           </p>
         )}
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

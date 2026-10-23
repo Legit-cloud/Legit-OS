@@ -237,11 +237,11 @@ export default function Classroom() {
             <p className="text-xs font-semibold text-slate-900 dark:text-white">
               {completedLessonIds.length} of {allLessons.length} Lessons Completed
             </p>
-            <p className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 font-bold">{progressPercent}% Progress</p>
+            <p className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-bold">{progressPercent}% Progress</p>
           </div>
           <div className="h-2.5 w-24 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10 sm:w-32">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500"
+              className="h-full rounded-full bg-blue-600 transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -267,7 +267,7 @@ export default function Classroom() {
 
       {/* Installment Gating Notice */}
       {!enrollment.isFullyPaid && (
-        <Card className="border-amber-500/30 bg-amber-500/5 py-3 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Card variant="bento" className="border-amber-500/30 bg-amber-500/5 py-3 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Lock className="h-4 w-4 text-amber-500 shrink-0" />
             <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -291,7 +291,7 @@ export default function Classroom() {
         {/* Left: Video Player & Lesson Content Stage */}
         <div className="space-y-5">
           {/* Video Player Card */}
-          <Card className="overflow-hidden p-0 sm:p-0 border-cyan-500/20 shadow-2xl bg-slate-950">
+          <Card variant="bento" className="overflow-hidden p-0 sm:p-0 border-cyan-500/20 shadow-2xl bg-slate-950">
             <div className="relative aspect-video w-full bg-slate-950">
               {embedUrl ? (
                 <iframe
@@ -387,7 +387,7 @@ export default function Classroom() {
           </Card>
 
           {/* Interactive Lesson Tabs */}
-          <Card className="p-5 sm:p-6">
+          <Card variant="bento" className="p-5 sm:p-6">
             <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-white/10">
               <button
                 type="button"
@@ -547,7 +547,7 @@ export default function Classroom() {
 
         {/* Right Sidebar: Complete Course Curriculum Accordion */}
         <div className="space-y-4">
-          <Card className="p-4 sm:p-4">
+          <Card variant="bento" className="p-4 sm:p-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
               <h3 className="font-display font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-cyan-500" /> Course Syllabus

@@ -120,7 +120,7 @@ export default function Notifications() {
               }}
               title={soundOn ? 'Mute audio chime' : 'Enable audio chime'}
             >
-              {soundOn ? <Volume2 className="h-4 w-4 text-cyan-500" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
+              {soundOn ? <Volume2 className="h-4 w-4 text-blue-600 dark:text-blue-400" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
               {soundOn ? 'Chime on' : 'Chime muted'}
             </Button>
             <Button
@@ -129,7 +129,7 @@ export default function Notifications() {
               onClick={() => playChime('chime')}
               title="Test audio chime"
             >
-              <Play className="h-4 w-4 text-cyan-500" /> Test Chime
+              <Play className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Test Chime
             </Button>
             {desktopPerm !== 'granted' && (
               <Button
@@ -165,11 +165,11 @@ export default function Notifications() {
 
       {/* Prominent Unread Indicator Banner */}
       {unreadCount > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-blue-500/30 bg-blue-50/60 dark:bg-blue-950/20 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3.5 w-3.5 flex-shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-cyan-500 shadow-md shadow-cyan-500/50" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-blue-600 shadow-md shadow-blue-500/50" />
             </span>
             <div>
               <p className="text-sm font-bold text-slate-900 dark:text-white">
@@ -182,7 +182,7 @@ export default function Notifications() {
           </div>
           <button
             onClick={() => setFilter('unread')}
-            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-cyan-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-cyan-500/25 hover:brightness-110"
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-blue-600 hover:bg-blue-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-500/25 transition-colors"
           >
             <span>Filter unread ({unreadCount})</span>
             <ArrowRight className="h-3 w-3" />
@@ -200,7 +200,7 @@ export default function Notifications() {
               className={cn(
                 'rounded-xl px-4 py-2 transition whitespace-nowrap',
                 filter === 'all'
-                  ? 'bg-white shadow-sm dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-bold'
+                  ? 'bg-white shadow-sm dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900',
               )}
             >
@@ -211,13 +211,13 @@ export default function Notifications() {
               className={cn(
                 'rounded-xl px-4 py-2 transition flex items-center gap-1.5 whitespace-nowrap',
                 filter === 'unread'
-                  ? 'bg-white shadow-sm dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-bold'
+                  ? 'bg-white shadow-sm dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900',
               )}
             >
               Unread
               {unreadCount > 0 && (
-                <span className="grid h-4 min-w-4 place-items-center rounded-full bg-cyan-500 px-1 text-[10px] font-bold text-white">
+                <span className="grid h-4 min-w-4 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
                   {unreadCount}
                 </span>
               )}
@@ -227,7 +227,7 @@ export default function Notifications() {
               className={cn(
                 'rounded-xl px-4 py-2 transition flex items-center gap-1.5 whitespace-nowrap',
                 filter === 'broadcasts'
-                  ? 'bg-white shadow-sm dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-bold'
+                  ? 'bg-white shadow-sm dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900',
               )}
             >
@@ -299,7 +299,7 @@ export default function Notifications() {
                     'group relative rounded-3xl border p-5 transition shadow-sm',
                     n.read
                       ? 'border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/60'
-                      : 'border-cyan-500/40 bg-gradient-to-r from-cyan-500/[0.04] to-transparent ring-1 ring-cyan-500/20 dark:border-cyan-500/30',
+                      : 'border-blue-500/40 bg-blue-50/50 ring-1 ring-blue-500/20 dark:border-blue-500/30 dark:bg-blue-950/20',
                   )}
                 >
                   <div className="flex items-start gap-4">
@@ -310,7 +310,7 @@ export default function Notifications() {
                         severity === 'URGENT' && 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
                         severity === 'WARNING' && 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
                         severity === 'SUCCESS' && 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
-                        severity === 'INFO' && !broadcast && 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400',
+                        severity === 'INFO' && !broadcast && 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
                         severity === 'INFO' && broadcast && 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400',
                       )}
                     >
@@ -329,7 +329,7 @@ export default function Notifications() {
                         </h4>
 
                         {!n.read && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm shadow-cyan-500/30">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm shadow-blue-500/30">
                             New
                           </span>
                         )}
@@ -366,7 +366,7 @@ export default function Notifications() {
                           {broadcast?.senderName && (
                             <>
                               <span>·</span>
-                              <span className="text-cyan-600 dark:text-cyan-400 font-medium">By {broadcast.senderName}</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-medium">By {broadcast.senderName}</span>
                             </>
                           )}
                         </div>
@@ -388,7 +388,7 @@ export default function Notifications() {
                           {broadcast?.actionUrl && (
                             <a
                               href={broadcast.actionUrl}
-                              className="inline-flex items-center gap-1 rounded-xl bg-cyan-500 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:brightness-110"
+                              className="inline-flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-700 px-3 py-1 text-xs font-semibold text-white shadow-sm transition-colors"
                             >
                               <span>{broadcast.actionLabel || 'View Link'}</span>
                               {broadcast.actionUrl.startsWith('http') ? (

@@ -36,32 +36,73 @@ function TimeSync() {
   const hubOpen = hour >= 8 && hour < 22;
 
   return (
-    <Card className="relative overflow-hidden lg:col-span-2">
-      <div className="flex flex-col gap-6 sm:flex-row">
+    <Card variant="bento" className="relative overflow-hidden lg:col-span-2">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex-1">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><Clock className="h-4 w-4 text-cyan-500" /> Time Sync · West Africa Time</p>
-          <p className="mt-4 font-mono text-5xl font-semibold tabular-nums tracking-tight sm:text-6xl">{time}</p>
-          <p className="mt-2 text-sm text-slate-500">{date}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span>Time Sync · West Africa Time</span>
+          </div>
+          <p className="mt-4 font-mono text-5xl font-extrabold tabular-nums tracking-tight text-slate-900 sm:text-6xl dark:text-white drop-shadow-sm">
+            {time}
+          </p>
+          <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">{date}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
             <Badge tone="cyan">Lagos / Ibadan · UTC+1</Badge>
-            <Badge tone={hubOpen ? 'green' : 'amber'}>{hubOpen ? 'Front desk open' : 'After hours · 24/7 access'}</Badge>
+            <Badge tone={hubOpen ? 'green' : 'amber'}>
+              {hubOpen ? '● Hub doors open (08:00 - 22:00)' : '● After hours · 24/7 keycard access'}
+            </Badge>
           </div>
         </div>
-        <div className="relative aspect-[5/4] w-full rounded-3xl border border-slate-200 bg-slate-950 sm:w-64 dark:border-white/10" aria-label="Regional status map">
-          <div className="grid-bg absolute inset-0 rounded-3xl opacity-40" />
-          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full p-4">
+
+        <div className="relative aspect-[5/4] w-full rounded-2xl border border-slate-200/80 bg-slate-950 sm:w-72 dark:border-white/10 shadow-inner overflow-hidden" aria-label="Regional status map">
+          <div className="grid-bg absolute inset-0 opacity-40" />
+          <div className="absolute inset-0 bg-radial from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
+          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full p-3.5">
             {CITIES.filter((c) => !c.hub).map((c) => (
-              <line key={c.name} x1={18} y1={72} x2={c.x} y2={c.y} stroke="rgb(34 211 238 / 0.25)" strokeWidth="0.6" strokeDasharray="2 2" />
+              <line
+                key={c.name}
+                x1={18}
+                y1={72}
+                x2={c.x}
+                y2={c.y}
+                stroke="rgb(34 211 238 / 0.3)"
+                strokeWidth="0.65"
+                strokeDasharray="2.5 2.5"
+              />
             ))}
             {CITIES.map((c) => (
               <g key={c.name}>
-                {c.hub && <circle cx={c.x} cy={c.y} r="6" fill="rgb(34 211 238 / 0.25)"><animate attributeName="r" values="3;9;3" dur="2.4s" repeatCount="indefinite" /></circle>}
-                <circle cx={c.x} cy={c.y} r={c.hub ? 2.6 : 1.6} fill={c.hub ? '#22d3ee' : '#64748b'} />
-                <text x={c.x + 3.5} y={c.y + 1.2} fontSize="5" fill={c.hub ? '#a5f3fc' : '#94a3b8'} fontFamily="JetBrains Mono, monospace">{c.name}</text>
+                {c.hub && (
+                  <>
+                    <circle cx={c.x} cy={c.y} r="10" fill="none" stroke="rgb(34 211 238 / 0.2)" strokeWidth="0.5">
+                      <animate attributeName="r" values="3;12;3" dur="3s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.8;0;0.8" dur="3s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx={c.x} cy={c.y} r="6" fill="rgb(34 211 238 / 0.3)">
+                      <animate attributeName="r" values="3;8;3" dur="2.4s" repeatCount="indefinite" />
+                    </circle>
+                  </>
+                )}
+                <circle cx={c.x} cy={c.y} r={c.hub ? 2.8 : 1.6} fill={c.hub ? '#22d3ee' : '#64748b'} />
+                <text
+                  x={c.x + 3.5}
+                  y={c.y + 1.2}
+                  fontSize="4.8"
+                  fontWeight={c.hub ? 'bold' : 'normal'}
+                  fill={c.hub ? '#38bdf8' : '#94a3b8'}
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {c.name}
+                </text>
               </g>
             ))}
           </svg>
-          <span className="absolute left-3 top-3 font-mono text-[10px] text-emerald-400">● NG GRID · NOMINAL</span>
+          <div className="absolute left-3 top-3 flex items-center gap-1.5 font-mono text-[9px] font-semibold text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>NG TELEMETRY · NOMINAL</span>
+          </div>
         </div>
       </div>
     </Card>
@@ -142,7 +183,7 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
   }
 
   return (
-    <Card className="flex flex-col justify-between">
+    <Card variant="bento" className="flex flex-col justify-between">
       <div>
         {hasHardware && hasWorkspace ? (
           <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-white/5 text-xs font-semibold">
@@ -179,11 +220,11 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
         ) : (
           <div className="flex items-center justify-between gap-2">
             {hasHardware ? (
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <Laptop className="h-4 w-4 text-cyan-500 shrink-0" /> Workstation Timer
               </p>
             ) : (
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <Timer className="h-4 w-4 text-cyan-500 shrink-0" /> Workspace Timer
               </p>
             )}
@@ -216,7 +257,7 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
 
         {/* Timer display section */}
         <div className="mt-4 flex items-center gap-4">
-          <svg viewBox="0 0 110 110" className="h-28 w-28 shrink-0 -rotate-90">
+          <svg viewBox="0 0 110 110" className="h-28 w-28 shrink-0 -rotate-90 drop-shadow-[0_0_8px_rgba(34,211,238,0.25)]">
             <defs>
               <linearGradient id="timer-grad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stopColor="#22d3ee" />
@@ -411,7 +452,7 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
               ))}
             </select>
             <Button
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20"
+              className="w-full"
               loading={checkIn.isPending}
               onClick={() => currentReady && checkIn.mutate(currentReady.id)}
             >
@@ -420,7 +461,7 @@ function WorkspaceTimer({ bookings }: { bookings: Booking[] }) {
           </div>
         ) : ready.length === 1 ? (
           <Button
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20"
+            className="w-full"
             loading={checkIn.isPending}
             onClick={() => checkIn.mutate(ready[0].id)}
           >
@@ -463,19 +504,19 @@ export default function Overview() {
       <PageHeader eyebrow="Overview" title={`${greeting}, ${user.fullName.split(' ')[0]}`} subtitle="Your hub at a glance — sessions, payments and learning." />
 
       {unreadNotifs > 0 && (
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent p-4 sm:px-5 sm:py-3.5 shadow-sm">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-blue-500/30 bg-blue-50/70 p-4 sm:px-5 sm:py-3.5 shadow-sm dark:bg-blue-950/20 dark:border-blue-500/30">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3 flex-shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-cyan-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-blue-500" />
             </span>
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              You have <strong className="text-cyan-600 dark:text-cyan-400">{unreadNotifs} unread notice{unreadNotifs === 1 ? '' : 's'}</strong> from administration
+              You have <strong className="text-blue-600 dark:text-blue-400">{unreadNotifs} unread notice{unreadNotifs === 1 ? '' : 's'}</strong> from administration
             </span>
           </div>
           <Link
             to="/app/notifications"
-            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-cyan-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-cyan-500/25 hover:brightness-110"
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700"
           >
             <span>Check it out</span>
             <ArrowRight className="h-3 w-3" />
@@ -490,7 +531,7 @@ export default function Overview() {
             'mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-3xl border p-4 sm:px-5 sm:py-3.5 shadow-sm overflow-hidden',
             hw.status === 'CONFIRMED'
               ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent'
-              : 'border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-transparent'
+              : 'border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20'
           )}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -499,7 +540,7 @@ export default function Overview() {
                 'shrink-0 rounded-2xl p-2.5',
                 hw.status === 'CONFIRMED'
                   ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                  : 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+                  : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
               )}
             >
               <Laptop className="h-5 w-5" />
@@ -518,10 +559,10 @@ export default function Overview() {
             </div>
           </div>
           <Badge
-            tone={hw.status === 'CONFIRMED' ? 'amber' : 'cyan'}
+            tone={hw.status === 'CONFIRMED' ? 'amber' : 'blue'}
             className="shrink-0 self-start md:self-auto whitespace-nowrap"
           >
-            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', hw.status === 'CONFIRMED' ? 'bg-amber-500' : 'bg-cyan-500 animate-ping')} />
+            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', hw.status === 'CONFIRMED' ? 'bg-amber-500' : 'bg-blue-600 animate-ping')} />
             {hw.status === 'CONFIRMED' ? 'Ready for Pickup' : 'Active Rental'}
           </Badge>
         </div>
@@ -546,25 +587,41 @@ export default function Overview() {
           { to: '/app/transit', icon: Bike, title: 'Transit Dispatch', body: 'Bike, Keke or Cab service · Coming Soon' },
           { to: '/app/network', icon: Users, title: 'Community', body: 'Chat with members and hub support' },
         ].map((a) => (
-          <Link key={a.to} to={a.to} className="glass group flex items-start gap-4 p-5 transition hover:-translate-y-0.5 hover:border-cyan-500/40">
-            <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400"><a.icon className="h-5 w-5" /></span>
-            <span className="flex-1">
-              <span className="block font-semibold">{a.title}</span>
-              <span className="text-sm text-slate-500">{a.body}</span>
+          <Link
+            key={a.to}
+            to={a.to}
+            className="bento-card group flex items-start gap-4 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5"
+          >
+            <span className="rounded-2xl bg-blue-50 text-blue-600 transition group-hover:scale-110 group-hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:group-hover:bg-blue-500/20 p-3">
+              <a.icon className="h-5 w-5" />
             </span>
-            <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-cyan-500" />
+            <span className="flex-1">
+              <span className="block font-display font-bold text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
+                {a.title}
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                {a.body}
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-blue-600" />
           </Link>
         ))}
       </div>
 
       {outstanding.length > 0 && (
-        <Card className="mt-4 border-amber-500/30">
+        <Card variant="bento" className="mt-4 border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold">You have {outstanding.length} unpaid invoice{outstanding.length > 1 ? 's' : ''}</p>
-              <p className="text-sm text-slate-500">{outstanding.map((i) => i.description).join(' · ')}</p>
+              <p className="font-display font-bold text-amber-700 dark:text-amber-400">
+                You have {outstanding.length} unpaid invoice{outstanding.length > 1 ? 's' : ''}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{outstanding.map((i) => i.description).join(' · ')}</p>
             </div>
-            <Link to={`/app/finance?invoice=${outstanding[0].id}`}><Button>Pay by bank transfer</Button></Link>
+            <Link to={`/app/finance?invoice=${outstanding[0].id}`}>
+              <Button className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold shadow-md shadow-amber-500/20 hover:brightness-110">
+                Pay by bank transfer
+              </Button>
+            </Link>
           </div>
         </Card>
       )}

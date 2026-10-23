@@ -38,7 +38,7 @@ export default function Partners() {
       {data.length === 0 ? <Card><Empty icon={<Handshake className="h-10 w-10" />} title="No partners yet" /></Card> : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data.map((p) => (
-            <Card key={p.id}>
+            <Card key={p.id} variant="bento">
               <div className="flex items-start justify-between gap-2">
                 <Badge tone="cyan">{p.category}</Badge>
                 <Button size="sm" variant="ghost" onClick={() => confirm(`Remove ${p.name}?`) && remove.mutate(p.id)} aria-label={`Remove ${p.name}`}><Trash2 className="h-4 w-4 text-rose-500" /></Button>

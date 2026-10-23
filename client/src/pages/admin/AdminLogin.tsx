@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button, Field, Logo } from '../../components/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { api, errorMessage } from '../../lib/api';
 import type { User } from '../../lib/types';
 import { useAuth } from '../../store/auth';
@@ -60,20 +61,21 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="relative grid min-h-screen place-items-center overflow-hidden px-4 py-16">
-      <div className="grid-bg absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
-      <div className="absolute left-1/2 top-1/3 h-80 w-[560px] -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[120px]" />
+    <div className="relative grid min-h-screen place-items-center overflow-hidden px-4 py-16 bg-slate-50 text-slate-900 dark:bg-[#07090e] dark:text-slate-100 transition-colors duration-200">
+      <div className="light-mesh dark:scanline-grid absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] pointer-events-none" />
+      <div className="absolute left-1/2 top-1/3 h-80 w-[560px] -translate-x-1/2 rounded-full bg-blue-500/10 dark:bg-blue-600/20 blur-[130px] pointer-events-none" />
 
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-cyan-600 dark:text-slate-300">
+        <Link to="/" className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to site
         </Link>
+        <ThemeToggle />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass relative w-full max-w-md p-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass relative w-full max-w-md p-8 sm:p-9 shadow-xl dark:shadow-2xl border border-slate-200/90 dark:border-white/10 bg-white/95 dark:bg-[#0d111a]/90">
         <Logo />
-        <h1 className="mt-6 font-display text-2xl font-bold">Sign in to Admin Command Center</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-6 font-display text-2xl font-bold text-slate-900 dark:text-white">Sign in to Admin Command Center</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Access hub operations, fleet inventory, pricing and audit logs.
         </p>
 
@@ -104,7 +106,7 @@ export default function AdminLogin() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -117,11 +119,11 @@ export default function AdminLogin() {
               <input
                 type="checkbox"
                 id="rememberMe"
-                className="h-4 w-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-500"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 checked={form.rememberMe}
                 onChange={(e) => setForm({ ...form, rememberMe: e.target.checked })}
               />
-              <label htmlFor="rememberMe" className="text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+              <label htmlFor="rememberMe" className="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
                 Remember me
               </label>
             </div>
@@ -129,7 +131,7 @@ export default function AdminLogin() {
             <button
               type="button"
               onClick={quickFillAdmin}
-              className="text-xs font-mono text-cyan-600 hover:underline"
+              className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
             >
               Fill demo credentials
             </button>
@@ -141,7 +143,7 @@ export default function AdminLogin() {
             </p>
           )}
 
-          <Button type="submit" className="w-full" size="lg" loading={loading}>
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md shadow-blue-500/25 transition-colors" size="lg" loading={loading}>
             Sign in
           </Button>
         </form>

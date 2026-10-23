@@ -39,14 +39,11 @@ function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode
   const location = useLocation();
   if (!token || !user) {
     if (admin) {
-      const isRoot = location.pathname === '/admin' || location.pathname === '/admin/';
-      const target = isRoot ? '/admin/login' : `/admin/login?next=${encodeURIComponent(location.pathname)}`;
-      return <Navigate to={target} replace />;
+      return <Navigate to="/admin/login" replace />;
     }
     return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
   if (admin && user.role !== 'ADMIN') return <Navigate to="/admin/login?error=unauthorized" replace />;
-  if (!admin && user.role === 'ADMIN') return <Navigate to={`/admin/${user.username || 'admin'}`} replace />;
   if (!admin && user.status !== 'ACTIVE') return <Navigate to="/register?pending=1" replace />;
   return <>{children}</>;
 }
@@ -54,6 +51,9 @@ function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode
 function AdminRedirect() {
   const { user } = useAuth();
   const location = useLocation();
+  if (!user || user.role !== 'ADMIN') {
+    return <Navigate to="/admin/login" replace />;
+  }
   const username = user?.username || 'admin';
   const sub = location.pathname.replace(/^\/admin\/?/, '');
   return <Navigate to={`/admin/${username}${sub ? `/${sub}` : ''}`} replace />;

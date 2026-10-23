@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { closeSocket, getSocket, useSocketEvent } from '../lib/socket';
 import type { Notification, User } from '../lib/types';
@@ -48,12 +48,14 @@ export function useSessionSync() {
 export function useLogout() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const clear = useAuth((s) => s.clear);
   return async (notifyServer = true) => {
+    const isAdmin = location.pathname.startsWith('/admin');
     if (notifyServer) await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
     closeSocket();
     clear();
     qc.clear();
-    navigate('/');
+    navigate(isAdmin ? '/admin/login' : '/');
   };
 }

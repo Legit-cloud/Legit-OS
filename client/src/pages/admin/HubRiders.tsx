@@ -68,7 +68,7 @@ export default function HubRiders() {
           {live.map((r) => {
             const candidates = data.riders.filter((x) => x.available || x.id === r.rider?.id);
             return (
-              <Card key={r.id}>
+              <Card key={r.id} variant="bento">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">{r.user.fullName}</p>
@@ -105,7 +105,7 @@ export default function HubRiders() {
       <h2 className="mb-3 mt-10 font-display text-lg font-bold">Rider fleet</h2>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {data.riders.map((r) => (
-          <Card key={r.id}>
+          <Card key={r.id} variant="bento">
             <div className="flex items-center justify-between">
               <Badge tone="cyan">{r.vehicleType}</Badge>
               {r.available ? <Badge tone="green">Available</Badge> : <Badge tone="amber">Busy / off</Badge>}
@@ -122,7 +122,7 @@ export default function HubRiders() {
       </div>
 
       {past.length > 0 && (
-        <Card className="mt-10 overflow-x-auto">
+        <Card variant="bento" className="mt-10 overflow-x-auto">
           <h2 className="font-display text-lg font-bold">Trip history</h2>
           <table className="mt-3 w-full min-w-[560px] text-left text-sm">
             <tbody className="divide-y divide-slate-200 dark:divide-white/10">

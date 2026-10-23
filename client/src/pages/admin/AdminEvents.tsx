@@ -46,7 +46,7 @@ export default function AdminEvents() {
       <PageHeader eyebrow="Events & Games" title="Programming" subtitle="Publish hub events and community web games." actions={<Button onClick={() => setForm(EMPTY)}><Plus className="h-4 w-4" /> New</Button>} />
       <div className="grid gap-3 md:grid-cols-2">
         {data.map((e) => (
-          <Card key={e.id} className="flex gap-4">
+          <Card key={e.id} variant="bento" className="flex gap-4">
             <span className="h-fit rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400">{e.kind === 'GAME' ? <Gamepad2 className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />}</span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{e.title}</p><Badge tone={e.kind === 'GAME' ? 'violet' : 'cyan'}>{e.kind}</Badge></div>

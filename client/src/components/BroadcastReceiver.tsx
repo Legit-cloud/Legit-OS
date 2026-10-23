@@ -180,11 +180,11 @@ export function BroadcastReceiver() {
       case 'INFO':
       default:
         return {
-          bg: 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-900/50 text-cyan-950 dark:text-cyan-100',
-          badge: 'bg-cyan-600 text-white shadow-cyan-500/30',
-          icon: <BellRing className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />,
-          accent: 'from-cyan-500 to-blue-600',
-          ring: 'ring-cyan-500/30',
+          bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 text-blue-950 dark:text-blue-100',
+          badge: 'bg-blue-600 text-white shadow-blue-500/30',
+          icon: <BellRing className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
+          accent: 'from-blue-600 to-blue-700',
+          ring: 'ring-blue-500/30',
           label: 'Hub Announcement',
         };
     }
@@ -305,7 +305,7 @@ export function BroadcastReceiver() {
 
                       <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
                         <span className="flex items-center gap-1">
-                          <Sparkles className="h-3.5 w-3.5 text-cyan-500" />
+                          <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                           <span>From: {currentPopup.senderName || 'Hub Administration'}</span>
                         </span>
                         <span>{new Date(currentPopup.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

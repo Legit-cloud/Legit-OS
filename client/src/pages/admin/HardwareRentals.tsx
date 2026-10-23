@@ -273,27 +273,27 @@ export default function HardwareRentals() {
       {/* Search & Actions Bar */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search workstation name or specs…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/5"
+            className="field rounded-full pl-10 text-sm"
           />
         </div>
-        <p className="text-xs text-slate-500">
-          Changes here update immediately on member devices under <strong>Infrastructure → Hardware Rentals</strong>.
+        <p className="text-xs text-slate-500 font-mono">
+          <span className="text-blue-600 dark:text-blue-400">●</span> Syncs live with member terminal under <strong className="text-slate-700 dark:text-slate-300">Infrastructure → Hardware Rentals</strong>.
         </p>
       </div>
 
       {/* Fleet Cards Grid */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredHardware.map((h) => (
-          <Card key={h.id} className="relative flex flex-col justify-between overflow-hidden transition-all hover:border-cyan-500/50">
+          <Card key={h.id} variant="bento" className="relative flex flex-col justify-between overflow-hidden transition-all hover:border-blue-500/50">
             <div>
               <div className="flex items-start justify-between gap-3">
-                <span className="rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 p-3 text-cyan-600 dark:text-cyan-400">
+                <span className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400">
                   <Laptop className="h-6 w-6" />
                 </span>
                 <button
@@ -318,7 +318,7 @@ export default function HardwareRentals() {
                 <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white">
                   {h.name}
                 </h3>
-                <p className="mt-1 line-clamp-3 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400 font-mono">
                   {h.description || 'No specs entered.'}
                 </p>
               </div>
@@ -330,7 +330,7 @@ export default function HardwareRentals() {
                   {naira(h.price)}
                   <span className="text-xs font-normal text-slate-500">/{h.unit}</span>
                 </p>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     size="sm"
                     variant="outline"
@@ -368,7 +368,7 @@ export default function HardwareRentals() {
       <h2 className="mb-3 mt-12 font-display text-lg font-bold">
         Hardware Rental Bookings
       </h2>
-      <Card className="overflow-x-auto p-0 sm:p-0">
+      <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wider text-slate-500">
             <tr>

@@ -8,16 +8,22 @@
     <link rel="apple-touch-icon" href="/logo-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <title>L.E.G.I.T Innovation Hub</title>
     <script>
       try {
-        localStorage.removeItem('legit-theme');
-        document.documentElement.classList.remove('dark');
+        const theme = localStorage.getItem('legit_hub_theme') || 'light';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
       } catch {}
     </script>
   </head>
-  <body>
+  <body class="bg-slate-50 text-slate-900 dark:bg-[#07090e] dark:text-slate-100 antialiased selection:bg-blue-500/20 selection:text-blue-600 dark:selection:bg-blue-500/30 dark:selection:text-blue-200">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

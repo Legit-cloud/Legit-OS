@@ -54,7 +54,7 @@ export default function Comms() {
         }
       />
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <Card className="p-3 sm:p-3 lg:h-[calc(100vh-13rem)] lg:min-h-[480px] lg:overflow-y-auto">
+        <Card variant="bento" className="p-3 sm:p-3 lg:h-[calc(100vh-13rem)] lg:min-h-[480px] lg:overflow-y-auto">
           <button
             onClick={() => setActive({ key: 'global', title: 'Global Community', subtitle: 'Moderate the open member channel' })}
             className={cn('flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold', active.key === 'global' ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'hover:bg-slate-100 dark:hover:bg-white/5')}

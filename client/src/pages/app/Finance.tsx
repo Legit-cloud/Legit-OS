@@ -133,45 +133,93 @@ export default function Finance() {
       <PageHeader eyebrow="Finance & Logs" title="Billing" subtitle="Pay by bank transfer, upload your receipt and track every invoice." />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><CreditCard className="h-4 w-4 text-cyan-500" /> Active plan</p>
-          <p className="mt-3 font-display text-2xl font-bold">{tierLabel(data.plan.tier)}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-            <CalendarClock className="h-4 w-4" />
-            {data.plan.renewsAt ? `Renews ${formatDate(data.plan.renewsAt)}` : 'No renewal — pay per booking'}
-          </p>
+        <Card variant="bento" className="flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <CreditCard className="h-4 w-4 text-cyan-500" /> Active Membership
+              </p>
+              <Badge tone="cyan">{data.plan.tier === 'VIP' ? 'VIP Access' : data.plan.tier === 'PRO_MONTHLY' ? 'Pro Resident' : 'Flex Member'}</Badge>
+            </div>
+            <p className="mt-4 font-display text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+              {tierLabel(data.plan.tier)}
+            </p>
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <CalendarClock className="h-3.5 w-3.5" />
+              {data.plan.renewsAt ? `Renews on ${formatDate(data.plan.renewsAt)}` : 'Pay-as-you-go · No auto-renewal'}
+            </p>
+          </div>
           {data.plan.tier === 'PAY_AS_YOU_GO' && (
-            <Button size="sm" className="mt-4" loading={upgrade.isPending} onClick={() => upgrade.mutate()}>Upgrade to Pro · {naira(data.plan.proPrice)}/mo</Button>
+            <Button
+              size="sm"
+              className="mt-6 w-full bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/25 hover:bg-blue-700 transition-colors"
+              loading={upgrade.isPending}
+              onClick={() => upgrade.mutate()}
+            >
+              Upgrade to Pro · {naira(data.plan.proPrice)}/mo
+            </Button>
           )}
         </Card>
 
-        <Card className="lg:col-span-2">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><Landmark className="h-4 w-4 text-cyan-500" /> Official hub bank details</p>
-          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-            {[
-              ['Bank', data.bank.bankName],
-              ['Account name', data.bank.accountName],
-              ['Account number', data.bank.accountNumber],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl bg-slate-100 p-4 dark:bg-white/5">
-                <dt className="text-xs text-slate-500">{label}</dt>
-                <dd className="mt-1 flex items-center justify-between gap-2 font-semibold">
-                  <span className={cn(label === 'Account number' && 'font-mono text-lg tracking-wider')}>{value}</span>
-                  {label === 'Account number' && (
-                    <button onClick={() => copy(value)} className="rounded-full p-1.5 text-cyan-600 hover:bg-cyan-500/10" aria-label="Copy account number"><Copy className="h-4 w-4" /></button>
-                  )}
-                </dd>
+        {/* Official Hub Virtual Bank Card */}
+        <Card variant="bento" className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-blue-500/30 text-white shadow-xl">
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-blue-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Official Hub Transfer Account</span>
+            </div>
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Verified Direct Billing
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Designated Bank</p>
+              <p className="mt-1 font-display text-base font-bold text-white">{data.bank.bankName}</p>
+            </div>
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Account Name</p>
+              <p className="mt-1 font-display text-sm font-bold text-white truncate" title={data.bank.accountName}>
+                {data.bank.accountName}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-4 backdrop-blur-sm">
+              <p className="text-[11px] font-medium text-blue-300 uppercase tracking-wider">Account Number</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="font-mono text-lg font-bold tracking-widest text-blue-200">
+                  {data.bank.accountNumber}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copy(data.bank.accountNumber)}
+                  className="rounded-lg bg-blue-500/20 p-1.5 text-blue-300 hover:bg-blue-500/30 transition"
+                  aria-label="Copy account number"
+                  title="Copy account number"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
               </div>
-            ))}
-          </dl>
-          <p className="mt-3 text-xs text-slate-500">Only pay into this account. L.E.G.I.T staff will never ask you to pay into a personal account.</p>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-slate-400 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+            <span>Always verify account name matches <strong>{data.bank.accountName}</strong>. L.E.G.I.T Innovation Hub never requests transfers to personal accounts.</span>
+          </p>
         </Card>
       </div>
 
       <div ref={formRef} className="mt-4 grid scroll-mt-24 gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <Card>
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold"><Building className="h-5 w-5 text-cyan-500" /> Manual bank transfer</h2>
-          <form onSubmit={onSubmit} className="mt-4 space-y-4">
+        <Card variant="bento">
+          <h2 className="flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
+            <Building className="h-5 w-5 text-blue-600" /> Manual bank transfer
+          </h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Submit your transaction details & receipt after transferring to the official account.
+          </p>
+          <form onSubmit={onSubmit} className="mt-5 space-y-4">
             <Field label="Paying for">
               <select className="field" value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
                 <option value="">General payment (no invoice)</option>
@@ -179,33 +227,48 @@ export default function Finance() {
               </select>
             </Field>
             <Field label="Amount transferred (₦)">
-              <input className="field font-mono" type="number" min={1} step="any" required value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+              <input className="field font-mono font-semibold" type="number" min={1} step="any" required value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             </Field>
             {selected && Number(amount) > 0 && Number(amount) < selected.amount && (
-              <p className="rounded-2xl bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">This is less than the invoice total of {naira(selected.amount)}.</p>
+              <p className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-300 font-medium">
+                Note: This is less than the invoice total of {naira(selected.amount)}.
+              </p>
             )}
             <Field label="Bank receipt / proof of payment"><Uploader file={file} onFile={setFile} /></Field>
             <Field label="Note (optional)">
-              <input className="field" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Sender name, reference…" />
+              <input className="field" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Sender name, bank session ID, reference…" />
             </Field>
-            <Button type="submit" className="w-full" loading={submit.isPending}><Send className="h-4 w-4" /> Submit Proof to Admin</Button>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/25 hover:bg-blue-700 transition-colors"
+              loading={submit.isPending}
+            >
+              <Send className="h-4 w-4" /> Submit Proof to Admin
+            </Button>
           </form>
         </Card>
 
-        <Card>
-          <h2 className="font-display text-lg font-bold">Submitted proofs</h2>
+        <Card variant="bento">
+          <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white">Submitted proofs</h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Track verification by the hub administrative desk in real time.
+          </p>
           {data.proofs.length === 0 ? (
             <Empty icon={<Receipt className="h-10 w-10" />} title="No proofs yet" hint="Receipts you submit will appear here with their review status." />
           ) : (
             <ul className="mt-4 space-y-3">
               {data.proofs.map((p) => (
-                <li key={p.id} className="rounded-2xl border border-slate-200 p-4 dark:border-white/10">
+                <li key={p.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{naira(p.amount)}</span>
+                    <span className="font-mono text-base font-bold text-slate-900 dark:text-white">{naira(p.amount)}</span>
                     <StatusBadge status={p.status} />
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">{p.invoice?.description ?? 'General payment'} · {formatDateTime(p.createdAt)}</p>
-                  {p.reviewNote && <p className="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-sm dark:bg-white/5">Admin: {p.reviewNote}</p>}
+                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{p.invoice?.description ?? 'General payment'} · {formatDateTime(p.createdAt)}</p>
+                  {p.reviewNote && (
+                    <p className="mt-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-800 dark:text-blue-300">
+                      <strong>Admin note:</strong> {p.reviewNote}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -213,24 +276,43 @@ export default function Finance() {
         </Card>
       </div>
 
-      <Card className="mt-4 overflow-x-auto">
-        <h2 className="font-display text-lg font-bold">Invoice history</h2>
+      <Card variant="bento" className="mt-4 overflow-x-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white">Invoice history</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Complete record of your workspace, facility, course and hardware billings.</p>
+          </div>
+          <Badge tone="slate">{data.invoices.length} Invoices</Badge>
+        </div>
         {data.invoices.length === 0 ? (
           <Empty title="No invoices yet" />
         ) : (
           <table className="mt-4 w-full min-w-[640px] text-left text-sm">
-            <thead className="text-xs uppercase tracking-wider text-slate-500">
-              <tr><th className="pb-3 font-semibold">Date</th><th className="pb-3 font-semibold">Description</th><th className="pb-3 font-semibold">Type</th><th className="pb-3 text-right font-semibold">Amount</th><th className="pb-3 pl-4 font-semibold">Status</th><th /></tr>
+            <thead className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-white/10">
+              <tr>
+                <th className="pb-3">Date</th>
+                <th className="pb-3">Description</th>
+                <th className="pb-3">Type</th>
+                <th className="pb-3 text-right">Amount</th>
+                <th className="pb-3 pl-4">Status</th>
+                <th />
+              </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5 font-medium">
               {data.invoices.map((i) => (
-                <tr key={i.id}>
-                  <td className="py-3 text-slate-500">{formatDate(i.createdAt)}</td>
-                  <td className="py-3 font-medium">{i.description}</td>
-                  <td className="py-3"><Badge>{i.kind}</Badge></td>
-                  <td className="py-3 text-right font-mono">{naira(i.amount)}</td>
-                  <td className="py-3 pl-4"><StatusBadge status={i.status} /></td>
-                  <td className="py-3 text-right">{i.status === 'PENDING' && <Button size="sm" variant="outline" onClick={() => payInvoice(i.id)}>Pay</Button>}</td>
+                <tr key={i.id} className="transition hover:bg-slate-50/50 dark:hover:bg-white/[0.01]">
+                  <td className="py-3.5 text-xs text-slate-500 font-mono">{formatDate(i.createdAt)}</td>
+                  <td className="py-3.5 font-medium text-slate-900 dark:text-slate-100">{i.description}</td>
+                  <td className="py-3.5"><Badge tone="slate">{i.kind}</Badge></td>
+                  <td className="py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">{naira(i.amount)}</td>
+                  <td className="py-3.5 pl-4"><StatusBadge status={i.status} /></td>
+                  <td className="py-3.5 text-right">
+                    {i.status === 'PENDING' && (
+                      <Button size="sm" className="bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors" onClick={() => payInvoice(i.id)}>
+                        Pay now
+                      </Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

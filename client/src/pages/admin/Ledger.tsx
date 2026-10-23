@@ -46,7 +46,7 @@ export default function Ledger() {
       </div>
 
       {revenueByKind.length > 0 && (
-        <Card className="mt-4">
+        <Card variant="bento" className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Revenue by stream</p>
           <div className="mt-4 space-y-3">
             {revenueByKind.map((t) => {
@@ -54,7 +54,7 @@ export default function Ledger() {
               return (
                 <div key={t.kind} className="grid grid-cols-[110px_1fr_auto] items-center gap-3 text-sm">
                   <span className="font-medium">{t.kind}</span>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${pct}%` }} /></div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10"><div className="h-full rounded-full bg-blue-600" style={{ width: `${pct}%` }} /></div>
                   <span className="font-mono text-xs">{naira(t._sum.amount ?? 0)} · {pct}%</span>
                 </div>
               );
@@ -76,7 +76,7 @@ export default function Ledger() {
           ]}
         />
       </div>
-      <Card className="overflow-x-auto p-0 sm:p-0">
+      <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wider text-slate-500">
             <tr><th className="px-5 py-3">Date</th><th className="px-5 py-3">Member</th><th className="px-5 py-3">Description</th><th className="px-5 py-3">Type</th><th className="px-5 py-3 text-right">Amount</th><th className="px-5 py-3">Status</th><th /></tr>

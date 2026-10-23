@@ -72,10 +72,10 @@ export default function Transit() {
       />
 
       {TRANSIT_COMING_SOON ? (
-        <Card className="relative overflow-hidden p-8 sm:p-12 text-center">
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-cyan-500/5 pointer-events-none" />
+        <Card variant="bento" className="relative overflow-hidden p-8 sm:p-12 text-center">
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-blue-500/5 pointer-events-none" />
           <div className="relative mx-auto max-w-2xl">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-amber-500/20 to-cyan-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-amber-500/20 to-blue-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
               <Bike className="h-8 w-8" />
             </div>
 
@@ -84,7 +84,7 @@ export default function Transit() {
               <span>Coming Soon · Pilot Launching</span>
             </div>
 
-            <h2 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl text-slate-900 dark:text-white">
               On-Demand Transit to the Hub
             </h2>
             <p className="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-400">
@@ -93,7 +93,7 @@ export default function Transit() {
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3 text-left">
               <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <Bike className="h-5 w-5" />
                 </div>
                 <p className="mt-3 font-semibold text-slate-900 dark:text-white text-sm">Express Bike</p>
@@ -127,7 +127,7 @@ export default function Transit() {
         <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
           <div className="space-y-4">
             {live ? (
-              <Card>
+              <Card variant="bento">
                 <div className="flex items-center justify-between">
                   <p className="flex items-center gap-2 font-display font-bold"><Radio className="h-4 w-4 animate-pulse text-cyan-500" /> Live dispatch</p>
                   <StatusBadge status={live.status} />

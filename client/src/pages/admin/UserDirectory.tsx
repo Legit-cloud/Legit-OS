@@ -208,15 +208,15 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
       </div>
 
       {(u.idDocument || u.facePicture || u.status === 'PENDING_VERIFICATION') && (
-        <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3">
-          <div className="flex items-center justify-between">
+        <section className="terminal-bezel p-5 space-y-4 border-cyan-500/40">
+          <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
             <div>
-              <p className="font-semibold text-sm flex items-center gap-1.5 text-slate-900 dark:text-white">
-                <ShieldCheck className="h-4 w-4 text-cyan-500" />
-                Identity & Biometric Verification Desk
+              <p className="font-semibold text-sm flex items-center gap-2 text-cyan-400">
+                <ShieldCheck className="h-4 w-4" />
+                <span className="font-mono uppercase tracking-wider text-xs">Biometric Verification Terminal</span>
               </p>
-              <p className="text-xs text-slate-500">
-                Document Type: <span className="font-semibold text-slate-700 dark:text-slate-300">{u.idType || 'Government ID (NIN)'}</span>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Document Type: <span className="font-semibold text-slate-200">{u.idType || 'Government ID (NIN)'}</span>
               </p>
             </div>
             <StatusBadge status={u.status} />
@@ -224,32 +224,32 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
 
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div>
-              <span className="text-[11px] font-semibold uppercase text-slate-400 block mb-1">
-                Uploaded ID Document
+              <span className="text-[10px] font-mono font-semibold uppercase text-cyan-400/80 block mb-1.5">
+                ● Uploaded ID Document
               </span>
               {u.idDocument ? (
-                <a href={u.idDocument} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                  <img src={u.idDocument} alt="ID Document" className="h-36 w-full object-cover group-hover:scale-105 transition-transform" />
-                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">View full</span>
+                <a href={u.idDocument} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-white/10 shadow-lg bg-black/40">
+                  <img src={u.idDocument} alt="ID Document" className="h-40 w-full object-cover group-hover:scale-105 transition-transform" />
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2.5 py-0.5 text-[10px] text-cyan-300 backdrop-blur-sm">View full</span>
                 </a>
               ) : (
-                <div className="h-36 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                <div className="h-40 grid place-items-center rounded-xl bg-white/[0.03] border border-white/10 text-xs text-slate-400 font-mono">
                   No ID uploaded
                 </div>
               )}
             </div>
 
             <div>
-              <span className="text-[11px] font-semibold uppercase text-slate-400 block mb-1">
-                Live Face Capture
+              <span className="text-[10px] font-mono font-semibold uppercase text-cyan-400/80 block mb-1.5">
+                ● Live Face Capture
               </span>
               {u.facePicture ? (
-                <a href={u.facePicture} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                  <img src={u.facePicture} alt="Face Snapshot" className="h-36 w-full object-cover group-hover:scale-105 transition-transform" />
-                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">View full</span>
+                <a href={u.facePicture} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-white/10 shadow-lg bg-black/40">
+                  <img src={u.facePicture} alt="Face Snapshot" className="h-40 w-full object-cover group-hover:scale-105 transition-transform" />
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2.5 py-0.5 text-[10px] text-cyan-300 backdrop-blur-sm">View full</span>
                 </a>
               ) : (
-                <div className="h-36 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                <div className="h-40 grid place-items-center rounded-xl bg-white/[0.03] border border-white/10 text-xs text-slate-400 font-mono">
                   No face snapshot
                 </div>
               )}
@@ -257,12 +257,12 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
 
           {u.verificationNote && (
-            <p className="text-xs text-rose-500 bg-rose-500/10 p-2 rounded-lg">
+            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl font-mono">
               <strong>Previous Rejection Note:</strong> {u.verificationNote}
             </p>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2.5 pt-2">
             <Button
               size="sm"
               variant="success"
@@ -507,7 +507,7 @@ export default function UserDirectory() {
 
       {/* Tab: Members Table */}
       {tab === 'members' && (
-        <Card className="overflow-x-auto p-0 sm:p-0">
+        <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
           {usersLoading ? (
             <Loading />
           ) : (
@@ -560,7 +560,7 @@ export default function UserDirectory() {
 
       {/* Tab: Admin Invitations */}
       {tab === 'invites' && (
-        <Card className="overflow-x-auto p-0 sm:p-0">
+        <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
           {invitesLoading ? (
             <Loading />
           ) : filteredInvites.length === 0 ? (

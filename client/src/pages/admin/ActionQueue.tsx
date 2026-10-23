@@ -260,9 +260,9 @@ export default function ActionQueue() {
         {activeTab === 'verifications' && (
           <div>
             {verifications.length === 0 ? (
-              <Card>
+              <Card variant="bento">
                 <Empty
-                  icon={<ShieldCheck className="h-10 w-10 text-slate-400" />}
+                  icon={<ShieldCheck className="h-10 w-10 text-cyan-500" />}
                   title="No pending identity verifications"
                   hint="New member applications with uploaded ID documents and biometric face scans will appear here."
                 />
@@ -270,57 +270,75 @@ export default function ActionQueue() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2">
                 {verifications.map((v) => (
-                  <Card key={v.id} className="flex flex-col justify-between border-cyan-500/20">
+                  <Card key={v.id} variant="bento" className="flex flex-col justify-between border-cyan-500/30 group hover:border-cyan-500/60 transition">
                     <div>
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-white/10 pb-3">
                         <div>
                           <p className="font-display text-lg font-bold text-slate-900 dark:text-white">{v.fullName}</p>
-                          <p className="text-xs text-slate-500">{v.email} {v.phone && `· ${v.phone}`}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{v.email} {v.phone && `· ${v.phone}`}</p>
                         </div>
-                        <Badge tone="cyan">{v.idType || 'NIN'}</Badge>
+                        <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">
+                          {v.idType || 'GOVT ID'}
+                        </span>
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                            Government ID Document
-                          </p>
+                        <div className="rounded-2xl border border-slate-200/80 bg-slate-100/50 p-2.5 dark:border-white/10 dark:bg-white/[0.02]">
+                          <div className="flex items-center justify-between mb-1.5 px-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                              Document File
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-cyan-500">FORMAT VERIFIED</span>
+                          </div>
                           {v.idDocument ? (
-                            <a href={v.idDocument} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/40">
-                              <img src={v.idDocument} alt={`ID of ${v.fullName}`} className="h-44 w-full object-cover group-hover:scale-105 transition-transform" />
-                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium">Click to inspect</span>
+                            <a href={v.idDocument} target="_blank" rel="noreferrer" className="block relative group/img overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/60">
+                              <img src={v.idDocument} alt={`ID of ${v.fullName}`} className="h-44 w-full object-cover group-hover/img:scale-105 transition-transform" />
+                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/80 backdrop-blur-md px-2.5 py-0.5 text-[10px] text-white font-medium flex items-center gap-1">
+                                Zoom <ExternalLink className="h-2.5 w-2.5" />
+                              </span>
                             </a>
                           ) : (
-                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400 font-mono">
                               No document
                             </div>
                           )}
                         </div>
 
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                            Live Biometric Selfie
-                          </p>
+                        <div className="rounded-2xl border border-slate-200/80 bg-slate-100/50 p-2.5 dark:border-white/10 dark:bg-white/[0.02]">
+                          <div className="flex items-center justify-between mb-1.5 px-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                              Biometric Scan
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-emerald-400 flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE CAPTURE
+                            </span>
+                          </div>
                           {v.facePicture ? (
-                            <a href={v.facePicture} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/40">
-                              <img src={v.facePicture} alt={`Selfie of ${v.fullName}`} className="h-44 w-full object-cover group-hover:scale-105 transition-transform" />
-                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium">Click to inspect</span>
+                            <a href={v.facePicture} target="_blank" rel="noreferrer" className="block relative group/img overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-black/60">
+                              <img src={v.facePicture} alt={`Selfie of ${v.fullName}`} className="h-44 w-full object-cover group-hover/img:scale-105 transition-transform" />
+                              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/80 backdrop-blur-md px-2.5 py-0.5 text-[10px] text-white font-medium flex items-center gap-1">
+                                Zoom <ExternalLink className="h-2.5 w-2.5" />
+                              </span>
                             </a>
                           ) : (
-                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400">
+                            <div className="h-44 grid place-items-center rounded-xl bg-slate-100 dark:bg-white/5 text-xs text-slate-400 font-mono">
                               No face snapshot
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <p className="mt-3 text-xs text-slate-400">Application submitted {timeAgo(v.createdAt)}</p>
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-400 font-mono">
+                        <span>Submitted {timeAgo(v.createdAt)}</span>
+                        <span className="text-emerald-500 font-semibold">● Ready for Review</span>
+                      </div>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-white/10">
+                    <div className="mt-5 grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10">
                       <Button
                         variant="success"
                         size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
                         loading={approveUser.isPending && approveUser.variables === v.id}
                         onClick={() => approveUser.mutate(v.id)}
                       >
@@ -329,6 +347,7 @@ export default function ActionQueue() {
                       <Button
                         variant="danger"
                         size="sm"
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm"
                         onClick={() => setRejectingUser(v)}
                       >
                         <XCircle className="h-4 w-4 mr-1.5" /> Reject ID
@@ -344,36 +363,54 @@ export default function ActionQueue() {
         {activeTab === 'proofs' && (
           <div>
             {proofs.length === 0 ? (
-              <Card><Empty icon={<Inbox className="h-10 w-10 text-slate-400" />} title="Payment queue is clear" hint="New bank transfer receipts will appear here in real time." /></Card>
+              <Card variant="bento"><Empty icon={<Inbox className="h-10 w-10 text-cyan-500" />} title="Payment queue is clear" hint="New bank transfer receipts will appear here in real time." /></Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {proofs.map((p) => {
                   const mismatch = p.invoice && Math.abs(p.invoice.amount - p.amount) > 0.01;
                   return (
-                    <Card key={p.id} className="flex flex-col justify-between">
+                    <Card key={p.id} variant="bento" className="flex flex-col justify-between group transition">
                       <div>
                         <Receipt proof={p} />
                         <div className="mt-4 flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="truncate font-semibold">{p.user.fullName}</p>
-                            <p className="truncate text-xs text-slate-500">{p.user.email}</p>
+                            <p className="truncate font-display font-bold text-slate-900 dark:text-white">{p.user.fullName}</p>
+                            <p className="truncate text-xs text-slate-500 dark:text-slate-400 font-mono">{p.user.email}</p>
                           </div>
-                          <p className="font-display text-xl font-bold">{naira(p.amount)}</p>
+                          <p className="font-mono text-xl font-extrabold text-slate-900 dark:text-white">{naira(p.amount)}</p>
                         </div>
-                        <p className="mt-2 text-sm">{p.invoice ? p.invoice.description : <span className="text-slate-500">General payment (no invoice)</span>}</p>
+                        <p className="mt-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {p.invoice ? p.invoice.description : <span className="text-slate-500">General payment (no invoice)</span>}
+                        </p>
                         {p.invoice && (
-                          <p className="mt-1 text-xs text-slate-500">
-                            Invoice total {naira(p.invoice.amount)} {mismatch ? <Badge tone="amber" className="ml-1">Amount mismatch</Badge> : <Badge tone="green" className="ml-1">Matches</Badge>}
-                          </p>
+                          <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                            <span>Invoice total: <strong className="font-mono">{naira(p.invoice.amount)}</strong></span>
+                            {mismatch ? (
+                              <Badge tone="amber">Amount mismatch</Badge>
+                            ) : (
+                              <Badge tone="green">Matches ✓</Badge>
+                            )}
+                          </div>
                         )}
-                        {p.note && <p className="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-sm dark:bg-white/5">“{p.note}”</p>}
-                        <p className="mt-2 text-xs text-slate-400">Submitted {timeAgo(p.createdAt)}</p>
+                        {p.note && <p className="mt-2 rounded-xl bg-slate-100 p-2.5 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-300 font-mono">“{p.note}”</p>}
+                        <p className="mt-2 text-[11px] text-slate-400 font-mono">Submitted {timeAgo(p.createdAt)}</p>
                       </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
-                        <Button variant="success" size="sm" loading={approve.isPending && approve.variables === p.id} onClick={() => approve.mutate(p.id)}>
+                      <div className="mt-4 grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-white/10">
+                        <Button
+                          variant="success"
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+                          loading={approve.isPending && approve.variables === p.id}
+                          onClick={() => approve.mutate(p.id)}
+                        >
                           <CheckCircle2 className="h-4 w-4" /> Approve
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => setRejecting(p)}>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm"
+                          onClick={() => setRejecting(p)}
+                        >
                           <XCircle className="h-4 w-4" /> Reject
                         </Button>
                       </div>
@@ -389,31 +426,31 @@ export default function ActionQueue() {
         {activeTab === 'orders' && (
           <div>
             {orders.length === 0 ? (
-              <Card><Empty icon={<UtensilsCrossed className="h-10 w-10 text-slate-400" />} title="No pending lounge orders" hint="New food, drink, or snack orders placed by members will arrive here." /></Card>
+              <Card variant="bento"><Empty icon={<UtensilsCrossed className="h-10 w-10 text-cyan-500" />} title="No pending lounge orders" hint="New food, drink, or snack orders placed by members will arrive here." /></Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {orders.map((o) => {
                   const items = JSON.parse(o.itemsJson) as { name: string; qty: number }[];
                   return (
-                    <Card key={o.id} className="flex flex-col justify-between">
+                    <Card key={o.id} variant="bento" className="flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold">{o.user.fullName}</p>
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-2.5">
+                          <p className="font-display font-bold text-slate-900 dark:text-white">{o.user.fullName}</p>
                           <StatusBadge status={o.status} />
                         </div>
-                        <ul className="mt-3 divide-y divide-slate-100 text-sm text-slate-700 dark:divide-white/10 dark:text-slate-300">
+                        <ul className="mt-3 divide-y divide-slate-100 text-xs text-slate-700 dark:divide-white/10 dark:text-slate-300">
                           {items.map((i) => (
-                            <li key={i.name} className="py-1 flex justify-between">
-                              <span>{i.name}</span>
-                              <span className="font-mono font-semibold">× {i.qty}</span>
+                            <li key={i.name} className="py-1.5 flex justify-between">
+                              <span className="font-medium">{i.name}</span>
+                              <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400">× {i.qty}</span>
                             </li>
                           ))}
-                          {o.customItem && <li className="py-1 text-amber-600 dark:text-amber-400 font-medium">+ {o.customItem} (custom request)</li>}
+                          {o.customItem && <li className="py-1.5 text-amber-600 dark:text-amber-400 font-medium">+ {o.customItem} (custom request)</li>}
                         </ul>
-                        {o.notes && <p className="mt-2 text-xs italic text-slate-500 bg-slate-50 p-2 rounded-lg dark:bg-white/5">"{o.notes}"</p>}
+                        {o.notes && <p className="mt-2.5 text-xs italic text-slate-500 bg-slate-100/60 p-2 rounded-xl dark:bg-white/5 dark:text-slate-400">"{o.notes}"</p>}
                         <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                          <span className="font-display text-base font-bold text-slate-900 dark:text-white">{naira(o.total)}</span>
-                          <span>{timeAgo(o.createdAt)}</span>
+                          <span className="font-mono text-base font-extrabold text-slate-900 dark:text-white">{naira(o.total)}</span>
+                          <span className="font-mono text-[11px]">{timeAgo(o.createdAt)}</span>
                         </div>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-slate-100 dark:border-white/10">
@@ -427,7 +464,7 @@ export default function ActionQueue() {
                             Mark Ready
                           </Button>
                         )}
-                        <Button size="sm" variant="success" onClick={() => orderStatus.mutate({ id: o.id, status: 'DELIVERED' })}>
+                        <Button size="sm" variant="success" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => orderStatus.mutate({ id: o.id, status: 'DELIVERED' })}>
                           Mark Delivered
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => orderStatus.mutate({ id: o.id, status: 'CANCELLED' })}>
@@ -446,11 +483,11 @@ export default function ActionQueue() {
         {activeTab === 'bookings' && (
           <div>
             {bookings.length === 0 ? (
-              <Card><Empty icon={<Laptop className="h-10 w-10 text-slate-400" />} title="No open bookings" hint="Member bookings for hardware workstations, desks, or private studios will show here." /></Card>
+              <Card variant="bento"><Empty icon={<Laptop className="h-10 w-10 text-cyan-500" />} title="No open bookings" hint="Member bookings for hardware workstations, desks, or private studios will show here." /></Card>
             ) : (
-              <Card className="overflow-x-auto p-0 sm:p-0">
+              <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-white/5">
+                  <thead className="bg-slate-100/50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                     <tr>
                       <th className="px-5 py-3">Member</th>
                       <th className="px-5 py-3">Item / Workstation</th>
@@ -461,35 +498,35 @@ export default function ActionQueue() {
                       <th className="px-5 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {bookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
+                      <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition">
                         <td className="px-5 py-3 font-medium">
-                          <div>{b.user.fullName}</div>
-                          <div className="text-xs text-slate-500">{b.user.email}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{b.user.fullName}</div>
+                          <div className="text-xs text-slate-500 font-mono">{b.user.email}</div>
                         </td>
                         <td className="px-5 py-3">
-                          <div className="font-semibold flex items-center gap-2">
+                          <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                             {b.item.category === 'HARDWARE' ? <Laptop className="h-4 w-4 text-cyan-500" /> : <Calendar className="h-4 w-4 text-cyan-500" />}
                             {b.item.name}
                           </div>
-                          <div className="text-xs text-slate-500">{timeAgo(b.createdAt)}</div>
+                          <div className="text-xs text-slate-500 font-mono">{timeAgo(b.createdAt)}</div>
                         </td>
                         <td className="px-5 py-3">
                           <Badge tone={b.item.category === 'HARDWARE' ? 'cyan' : 'slate'}>{b.item.category}</Badge>
                         </td>
-                        <td className="px-5 py-3">{b.quantity} {b.item.unit}{b.quantity > 1 ? 's' : ''}</td>
-                        <td className="px-5 py-3 font-mono font-semibold">{naira(b.amount)}</td>
+                        <td className="px-5 py-3 font-mono text-xs">{b.quantity} {b.item.unit}{b.quantity > 1 ? 's' : ''}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white">{naira(b.amount)}</td>
                         <td className="px-5 py-3"><StatusBadge status={b.status} /></td>
                         <td className="px-5 py-3 text-right">
                           <div className="inline-flex gap-1.5">
                             {b.status === 'PENDING_PAYMENT' && (
-                              <Button size="sm" variant="success" onClick={() => updateBooking.mutate({ id: b.id, status: 'CONFIRMED' })}>
+                              <Button size="sm" variant="success" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => updateBooking.mutate({ id: b.id, status: 'CONFIRMED' })}>
                                 Confirm
                               </Button>
                             )}
                             {b.status === 'CONFIRMED' && (
-                              <Button size="sm" variant="primary" onClick={() => updateBooking.mutate({ id: b.id, status: 'ACTIVE' })}>
+                              <Button size="sm" variant="primary" className="bg-cyan-600 hover:bg-cyan-700 text-white" onClick={() => updateBooking.mutate({ id: b.id, status: 'ACTIVE' })}>
                                 Check In
                               </Button>
                             )}
@@ -518,11 +555,11 @@ export default function ActionQueue() {
         {activeTab === 'courses' && (
           <div>
             {enrollments.length === 0 ? (
-              <Card><Empty icon={<GraduationCap className="h-10 w-10 text-slate-400" />} title="No course purchases" hint="Member enrollments and installment payments will show here." /></Card>
+              <Card variant="bento"><Empty icon={<GraduationCap className="h-10 w-10 text-cyan-500" />} title="No course purchases" hint="Member enrollments and installment payments will show here." /></Card>
             ) : (
-              <Card className="overflow-x-auto p-0 sm:p-0">
+              <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
                 <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-white/5">
+                  <thead className="bg-slate-100/50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                     <tr>
                       <th className="px-5 py-3">Student</th>
                       <th className="px-5 py-3">Course</th>
@@ -531,26 +568,26 @@ export default function ActionQueue() {
                       <th className="px-5 py-3">Enrolled On</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {enrollments.map((e) => (
-                      <tr key={e.id}>
+                      <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition">
                         <td className="px-5 py-3 font-medium">
-                          <div>{e.user.fullName}</div>
-                          <div className="text-xs text-slate-500">{e.user.email}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{e.user.fullName}</div>
+                          <div className="text-xs text-slate-500 font-mono">{e.user.email}</div>
                         </td>
                         <td className="px-5 py-3">
-                          <div className="font-semibold">{e.course.title}</div>
-                          <div className="text-xs text-slate-500">Tuition: {naira(e.course.fullPrice)}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{e.course.title}</div>
+                          <div className="text-xs text-slate-500 font-mono">Tuition: {naira(e.course.fullPrice)}</div>
                         </td>
-                        <td className="px-5 py-3 font-mono font-semibold">{naira(e.paidAmount)}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white">{naira(e.paidAmount)}</td>
                         <td className="px-5 py-3">
                           {e.isFullyPaid ? (
-                            <Badge tone="green">Fully Paid</Badge>
+                            <Badge tone="green">Fully Paid ✓</Badge>
                           ) : (
                             <Badge tone="amber">50% Installment</Badge>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-xs text-slate-500">{formatDateTime(e.createdAt)}</td>
+                        <td className="px-5 py-3 text-xs text-slate-500 font-mono">{formatDateTime(e.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -564,21 +601,21 @@ export default function ActionQueue() {
         {activeTab === 'rides' && (
           <div>
             {rides.length === 0 ? (
-              <Card><Empty icon={<Bike className="h-10 w-10 text-slate-400" />} title="No pending transit rides" hint="When members request dispatch or rides, they appear here." /></Card>
+              <Card variant="bento"><Empty icon={<Bike className="h-10 w-10 text-cyan-500" />} title="No pending transit rides" hint="When members request dispatch or rides, they appear here." /></Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {rides.map((r) => (
-                  <Card key={r.id}>
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold">{r.user.fullName}</p>
+                  <Card key={r.id} variant="bento">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-2.5">
+                      <p className="font-display font-bold text-slate-900 dark:text-white">{r.user.fullName}</p>
                       <StatusBadge status={r.status} />
                     </div>
-                    <div className="mt-3 space-y-1 text-sm">
-                      <p><strong>Pickup:</strong> {r.pickup}</p>
-                      <p><strong>Dropoff:</strong> {r.destination}</p>
-                      {r.rider && <p className="text-cyan-600"><strong>Rider:</strong> {r.rider.name} ({r.rider.phone})</p>}
+                    <div className="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                      <p><strong className="text-slate-900 dark:text-white">Pickup:</strong> {r.pickup}</p>
+                      <p><strong className="text-slate-900 dark:text-white">Dropoff:</strong> {r.destination}</p>
+                      {r.rider && <p className="text-cyan-600 dark:text-cyan-400 font-mono"><strong>Rider:</strong> {r.rider.name} ({r.rider.phone})</p>}
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">Requested {timeAgo(r.createdAt)}</p>
+                    <p className="mt-3 text-[11px] text-slate-400 font-mono">Requested {timeAgo(r.createdAt)}</p>
                   </Card>
                 ))}
               </div>
@@ -590,11 +627,11 @@ export default function ActionQueue() {
         {activeTab === 'reviewed' && (
           <div>
             {reviewed.length === 0 ? (
-              <Card><Empty title="No reviewed payment history yet" /></Card>
+              <Card variant="bento"><Empty title="No reviewed payment history yet" /></Card>
             ) : (
-              <Card className="overflow-x-auto p-0 sm:p-0">
+              <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
                 <table className="w-full min-w-[560px] text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-white/5">
+                  <thead className="bg-slate-100/50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                     <tr>
                       <th className="px-5 py-3">Member</th>
                       <th className="px-5 py-3">Service / Description</th>
@@ -603,14 +640,14 @@ export default function ActionQueue() {
                       <th className="px-5 py-3 text-right">Reviewed</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {reviewed.map((r) => (
-                      <tr key={r.id}>
-                        <td className="px-5 py-3 font-medium">{r.user.fullName}</td>
-                        <td className="px-5 py-3 text-slate-500">{r.invoice?.description ?? 'General payment proof'}</td>
-                        <td className="px-5 py-3 font-mono">{naira(r.amount)}</td>
+                      <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition">
+                        <td className="px-5 py-3 font-semibold text-slate-900 dark:text-white">{r.user.fullName}</td>
+                        <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">{r.invoice?.description ?? 'General payment proof'}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white">{naira(r.amount)}</td>
                         <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
-                        <td className="px-5 py-3 text-right text-xs text-slate-500">{r.reviewedAt && timeAgo(r.reviewedAt)}</td>
+                        <td className="px-5 py-3 text-right text-xs text-slate-500 font-mono">{r.reviewedAt && timeAgo(r.reviewedAt)}</td>
                       </tr>
                     ))}
                   </tbody>

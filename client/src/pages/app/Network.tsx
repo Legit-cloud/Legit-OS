@@ -37,7 +37,7 @@ export default function Network() {
     <>
       <PageHeader eyebrow="Network" title="Community Hub" subtitle="Talk to fellow builders or reach the hub support desk." />
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-        <div className="glass flex flex-col gap-5 p-4 lg:h-[calc(100vh-13rem)] lg:min-h-[480px]">
+        <div className="bento-card flex flex-col gap-5 p-4 lg:h-[calc(100vh-13rem)] lg:min-h-[480px]">
           <div>
             <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Channels</p>
             {CHANNELS.map((c) => (
