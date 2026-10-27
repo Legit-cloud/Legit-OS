@@ -585,7 +585,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 Ibadan's Launchpad for Technical Founders
               </h2>
               <p className="mt-2 text-sm text-slate-300 leading-relaxed">
-                Join 550+ innovators, GPU compute clusters, and startup cohorts scaling digital products across Africa.
+                Join 550+ innovators, dedicated workstation labs, and startup cohorts scaling digital products across Africa.
               </p>
             </div>
 

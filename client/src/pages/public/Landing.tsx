@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { animate, AnimatePresence, motion, useInView } from 'framer-motion';
 import {
-  ArrowRight, ChevronDown, ChevronRight, Clock, Mail, MapPin, Menu, Phone, Quote, Sparkles, X, ArrowUpRight, CheckCircle2, Copy, ExternalLink, Send,
+  ArrowRight, ChevronDown, ChevronRight, Clock, Mail, MapPin, Menu, Phone, Quote, X, ArrowUpRight, CheckCircle2, Copy, ExternalLink, Send,
 } from 'lucide-react';
 import { Button, Logo, Modal, Tabs, cn } from '../../components/ui';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -129,7 +129,7 @@ function Counter({ value, prefix = '', suffix }: { value: number; prefix?: strin
 }
 
 function Hero() {
-  const pills = ['Startup Incubation', 'GPU Render Farm', 'Python Mastery', 'Pitch Night', '24/7 Power', 'Career Placement'];
+  const pills = ['Startup Incubation', 'Coworking & Media Labs', 'Python Mastery', 'Pitch Night', '24/7 Power', 'Career Placement'];
   return (
     <section className="relative overflow-hidden px-4 pb-20 pt-32 sm:pt-40">
       {/* High-tech ambient background */}
@@ -138,8 +138,7 @@ function Hero() {
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-blue-700 dark:border-blue-400/30 dark:bg-blue-950/50 dark:text-blue-300">
-            <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+          <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-blue-700 dark:border-blue-400/30 dark:bg-blue-950/50 dark:text-blue-300">
             <span>Ibadan's Premier Incubator & Developer Ecosystem</span>
           </div>
 
@@ -148,7 +147,7 @@ function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300">
-            Empowering technical founders, building high-impact startups. Full-stack labs, GPU render compute, and a collaborative network of 550+ builders in the heart of Ibadan.
+            Empowering technical founders, building high-impact startups. Full-stack labs, dedicated hardware workstations, and a collaborative network of 550+ builders in the heart of Ibadan.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -170,23 +169,23 @@ function Hero() {
             <span>·</span>
             <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">100Mbps Dedicated Fibre</span>
             <span>·</span>
-            <span>8× RTX GPU Nodes</span>
+            <span className="text-slate-700 dark:text-slate-300">Dedicated Hardware Labs</span>
           </div>
         </motion.div>
 
-        {/* Hero Visual: Architectural Workspace + Terminal Console */}
+        {/* Hero Visual: Coworking Tech Hub Community with Collaborating Innovators */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.15 }}
           className="relative"
         >
-          {/* Architectural Coworking Photo Card */}
+          {/* Authentic Nigerian Tech Hub & Community Photo Card */}
           <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl shadow-black/50">
             <img
-              src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80"
-              alt="L.E.G.I.T Innovation Hub interior architectural workspace in Ibadan"
-              className="h-[420px] w-full object-cover brightness-[0.85] contrast-[1.05]"
+              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80"
+              alt="L.E.G.I.T Innovation Hub members collaborating in tech lab in Nigeria"
+              className="h-[420px] w-full object-cover brightness-[0.9] contrast-[1.05]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
           </div>
@@ -423,7 +422,7 @@ function Technology() {
       <SectionTitle
         eyebrow="Pillar 04 · Technology"
         title="Deep-Tech Labs & Infrastructure that Never Blinks"
-        body="Access to high-performance GPU nodes, hardware prototyping benches, sound-treated media studios, and 24/7 solar + grid power."
+        body="Access to high-performance workstations, hardware prototyping benches, sound-treated media studios, and 24/7 solar + grid power."
       />
 
       {/* Specialized Innovation Disciplines */}
