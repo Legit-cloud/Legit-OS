@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Armchair, Building2, Clapperboard, Clock, Laptop, Minus, Plus, Presentation, School, ShoppingBag, Sparkles, UtensilsCrossed, DoorClosed,
+  Armchair, Building2, Clapperboard, Clock, Laptop, Minus, Plus, Presentation, Rocket, School, ShoppingBag, UtensilsCrossed, DoorClosed,
 } from 'lucide-react';
 import { Badge, Button, Card, Empty, Field, Loading, Modal, PageHeader, StatusBadge, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
@@ -159,13 +159,13 @@ function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-slate-950/90" />
           <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-1.5">
             <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
-              ⚡ 1 Gbps Fiber
+              1 Gbps Fiber
             </span>
             <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
-              🔋 24/7 Redundant Power
+              24/7 Redundant Power
             </span>
             <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
-              🪑 Ergonomic Seating
+              Ergonomic Seating
             </span>
           </div>
         </div>
@@ -279,21 +279,21 @@ function LoungeComingSoonCover() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3 text-left">
           <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
-            <p className="font-semibold text-slate-900 dark:text-white text-sm">⚡ Desk-Side Delivery</p>
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">Desk-Side Delivery</p>
             <p className="mt-1 text-xs text-slate-500 leading-normal">Tagged to your desk number so you can stay in flow while food comes to you.</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
-            <p className="font-semibold text-slate-900 dark:text-white text-sm">☕ Barista & Snacks</p>
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">Barista & Snacks</p>
             <p className="mt-1 text-xs text-slate-500 leading-normal">Espresso, healthy bites, cold brews, and fresh lunch specials every day.</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
-            <p className="font-semibold text-slate-900 dark:text-white text-sm">💳 Cashless Billing</p>
+            <p className="font-semibold text-slate-900 dark:text-white text-sm">Cashless Billing</p>
             <p className="mt-1 text-xs text-slate-500 leading-normal">Seamless checkout via wallet, bank transfer, and automated hub invoicing.</p>
           </div>
         </div>
 
         <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 flex items-center justify-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500" />
+          <UtensilsCrossed className="h-4 w-4 text-amber-500" />
           <span>The kitchen team is currently finalizing menu pricing and supplier prep. Ordering will unlock here automatically soon.</span>
         </div>
       </div>
@@ -539,7 +539,7 @@ export default function Infra() {
         <div className="grid gap-4 md:grid-cols-2">
           {(by.PROGRAM ?? []).map((p) => (
             <Card key={p.id} variant="bento" className="relative overflow-hidden group">
-              <Sparkles className="absolute -right-3 -top-3 h-28 w-28 text-cyan-500/10 pointer-events-none transition group-hover:scale-110 group-hover:text-cyan-500/20" />
+              <Rocket className="absolute -right-3 -top-3 h-28 w-28 text-blue-500/10 pointer-events-none transition group-hover:scale-110 group-hover:text-blue-500/20" />
               <Badge tone="cyan">Incubation & Residency</Badge>
               <p className="mt-3 font-display text-xl font-bold text-slate-900 dark:text-white">{p.name}</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{p.description}</p>

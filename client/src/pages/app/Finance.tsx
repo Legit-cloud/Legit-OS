@@ -162,39 +162,39 @@ export default function Finance() {
         </Card>
 
         {/* Official Hub Virtual Bank Card */}
-        <Card variant="bento" className="lg:col-span-2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-blue-500/30 text-white shadow-xl">
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+        <Card variant="bento" className="lg:col-span-2 relative overflow-hidden bg-white border border-slate-200/90 text-slate-900 shadow-sm dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 dark:border-blue-500/30 dark:text-white dark:shadow-xl">
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl pointer-events-none dark:bg-blue-500/10" />
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-white/10">
             <div className="flex items-center gap-2">
-              <Landmark className="h-4 w-4 text-blue-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Official Hub Transfer Account</span>
+              <Landmark className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Official Hub Transfer Account</span>
             </div>
-            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Verified Direct Billing
+            <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse dark:bg-emerald-400" /> Verified Direct Billing
             </span>
           </div>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Designated Bank</p>
-              <p className="mt-1 font-display text-base font-bold text-white">{data.bank.bankName}</p>
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 backdrop-blur-sm dark:bg-white/5 dark:border-white/10">
+              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider dark:text-slate-400">Designated Bank</p>
+              <p className="mt-1 font-display text-base font-bold text-slate-900 dark:text-white">{data.bank.bankName}</p>
             </div>
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Account Name</p>
-              <p className="mt-1 font-display text-sm font-bold text-white truncate" title={data.bank.accountName}>
+            <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-4 backdrop-blur-sm dark:bg-white/5 dark:border-white/10">
+              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider dark:text-slate-400">Account Name</p>
+              <p className="mt-1 font-display text-sm font-bold text-slate-900 dark:text-white truncate" title={data.bank.accountName}>
                 {data.bank.accountName}
               </p>
             </div>
-            <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-4 backdrop-blur-sm">
-              <p className="text-[11px] font-medium text-blue-300 uppercase tracking-wider">Account Number</p>
+            <div className="rounded-2xl bg-blue-50/70 border border-blue-200/80 p-4 backdrop-blur-sm dark:bg-blue-500/10 dark:border-blue-500/30">
+              <p className="text-[11px] font-medium text-blue-600 uppercase tracking-wider dark:text-blue-300">Account Number</p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <span className="font-mono text-lg font-bold tracking-widest text-blue-200">
+                <span className="font-mono text-lg font-bold tracking-widest text-blue-700 dark:text-blue-200">
                   {data.bank.accountNumber}
                 </span>
                 <button
                   type="button"
                   onClick={() => copy(data.bank.accountNumber)}
-                  className="rounded-lg bg-blue-500/20 p-1.5 text-blue-300 hover:bg-blue-500/30 transition"
+                  className="rounded-lg bg-blue-600/10 p-1.5 text-blue-600 hover:bg-blue-600/20 dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-500/30 transition"
                   aria-label="Copy account number"
                   title="Copy account number"
                 >
@@ -204,9 +204,9 @@ export default function Finance() {
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-slate-400 flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-            <span>Always verify account name matches <strong>{data.bank.accountName}</strong>. L.E.G.I.T Innovation Hub never requests transfers to personal accounts.</span>
+          <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400 shrink-0" />
+            <span>Always verify account name matches <strong className="text-slate-800 dark:text-white">{data.bank.accountName}</strong>. L.E.G.I.T Innovation Hub never requests transfers to personal accounts.</span>
           </p>
         </Card>
       </div>

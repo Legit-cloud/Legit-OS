@@ -550,6 +550,7 @@ const assetSchema = z.object({
   price: z.coerce.number().min(0).max(100_000_000),
   unit: z.enum(['hour', 'day', 'month', 'item']),
   totalCapacity: z.coerce.number().int().min(0).max(10_000).default(10),
+  availableUnits: z.coerce.number().int().min(0).max(10_000).nullable().optional(),
   available: z.boolean().default(true),
   sortOrder: z.coerce.number().int().default(0),
 });
@@ -577,7 +578,10 @@ adminRouter.get('/assets', async (_req, res) => {
     const { bookings: itemBookings, ...rest } = item;
     const maxCapacity = (item as any).totalCapacity ?? 10;
     const bookedUnits = itemBookings.length;
-    const availableUnits = Math.max(0, maxCapacity - bookedUnits);
+    const computedAvailable = Math.max(0, maxCapacity - bookedUnits);
+    const availableUnits = (item as any).availableUnits !== null && (item as any).availableUnits !== undefined
+      ? Number((item as any).availableUnits)
+      : computedAvailable;
     return {
       ...rest,
       totalCapacity: maxCapacity,

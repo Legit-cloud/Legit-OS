@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { HttpError, notFound } from '../lib/http.js';
 import { resolveChannel } from '../lib/channels.js';
+import { decryptMessage } from '../lib/crypto.js';
 import { online } from '../lib/realtime.js';
 import { publicUser } from '../lib/auth.js';
 import { getActiveBroadcastsForUser, getAllBroadcastsForUser, acknowledgeBroadcast } from '../lib/broadcasts.js';
@@ -50,13 +51,19 @@ communityRouter.get('/network/members', async (req, res) => {
 
 communityRouter.get('/network/messages', async (req, res) => {
   const channel = resolveChannel(req.user!, req.query.channel);
-  const messages = await prisma.chatMessage.findMany({
+  const rawMessages = await prisma.chatMessage.findMany({
     where: { channel },
     orderBy: { createdAt: 'desc' },
     take: 100,
     include: { sender: { select: { id: true, fullName: true, role: true, tier: true } } },
   });
-  res.json({ channel, messages: messages.reverse() });
+
+  const messages = rawMessages.reverse().map((m) => ({
+    ...m,
+    content: decryptMessage(m.content, channel),
+  }));
+
+  res.json({ channel, messages });
 });
 
 communityRouter.get('/notifications', async (req, res) => {

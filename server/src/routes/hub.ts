@@ -52,7 +52,10 @@ hubRouter.get('/catalog', async (_req, res) => {
     const { bookings, ...rest } = item;
     const maxCapacity = (item as any).totalCapacity ?? 10;
     const bookedUnits = bookings.length;
-    const availableUnits = Math.max(0, maxCapacity - bookedUnits);
+    const computedAvailable = Math.max(0, maxCapacity - bookedUnits);
+    const availableUnits = (item as any).availableUnits !== null && (item as any).availableUnits !== undefined
+      ? Number((item as any).availableUnits)
+      : computedAvailable;
     return {
       ...rest,
       totalCapacity: maxCapacity,

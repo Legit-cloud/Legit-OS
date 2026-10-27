@@ -151,9 +151,10 @@ model CatalogItem {
   description String    @default("")
   price       Float
   unit          String // hour, day, month, item
-  totalCapacity Int       @default(10)
-  available     Boolean   @default(true)
-  sortOrder     Int       @default(0)
+  totalCapacity  Int       @default(10)
+  availableUnits Int?
+  available      Boolean   @default(true)
+  sortOrder      Int       @default(0)
   bookings      Booking[]
 }
 

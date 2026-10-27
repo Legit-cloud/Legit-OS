@@ -12,7 +12,11 @@ type AdminBooking = Omit<Booking, 'item'> & { item: { name: string; category: Ca
 const CATEGORIES: Category[] = ['DESK', 'FACILITY', 'PROGRAM', 'HARDWARE', 'LOUNGE'];
 const DEFAULT_UNIT: Record<Category, CatalogItem['unit']> = { DESK: 'hour', FACILITY: 'hour', PROGRAM: 'month', HARDWARE: 'day', LOUNGE: 'item' };
 
-type Draft = Pick<CatalogItem, 'category' | 'name' | 'description' | 'price' | 'unit' | 'available'> & { id?: string; totalCapacity?: number };
+type Draft = Pick<CatalogItem, 'category' | 'name' | 'description' | 'price' | 'unit' | 'available'> & {
+  id?: string;
+  totalCapacity?: number;
+  availableUnits?: number;
+};
 
 function AssetForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
   const qc = useQueryClient();
@@ -50,10 +54,29 @@ function AssetForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
       </div>
       <Field label="Name"><input className="field" required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
       <Field label="Description"><input className="field" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
+      <Field label="Price (₦)"><input className="field font-mono" type="number" min={0} required value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Price (₦)"><input className="field font-mono" type="number" min={0} required value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></Field>
-        <Field label="Total Inventory / Capacity" hint="Number of units in the hub">
-          <input className="field font-mono" type="number" min={0} max={10000} required value={form.totalCapacity ?? 10} onChange={(e) => setForm({ ...form, totalCapacity: Number(e.target.value) })} />
+        <Field label="Total Capacity" hint="Max capacity (e.g. 10 total)">
+          <input
+            className="field font-mono"
+            type="number"
+            min={0}
+            max={10000}
+            required
+            value={form.totalCapacity ?? 10}
+            onChange={(e) => setForm({ ...form, totalCapacity: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Open / Available Units" hint="Displayed to members (e.g. 10 open)">
+          <input
+            className="field font-mono"
+            type="number"
+            min={0}
+            max={10000}
+            placeholder={String(form.totalCapacity ?? 10)}
+            value={form.availableUnits ?? ''}
+            onChange={(e) => setForm({ ...form, availableUnits: e.target.value === '' ? undefined : Number(e.target.value) })}
+          />
         </Field>
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.available} onChange={(e) => setForm({ ...form, available: e.target.checked })} className="h-4 w-4 accent-cyan-500" /> Available to members</label>
@@ -126,7 +149,7 @@ export default function HubAssets() {
                     )}
                     {i.availableUnits !== undefined && (
                       <span className="font-mono text-xs text-slate-500">
-                        {i.availableUnits}/{i.maxCapacity ?? 10} available
+                        {i.availableUnits}/{i.maxCapacity ?? i.totalCapacity ?? 10} open
                       </span>
                     )}
                   </div>

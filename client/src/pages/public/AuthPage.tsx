@@ -579,7 +579,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-[#07090e]/60 to-transparent" />
             <div className="relative z-10">
               <span className="pill bg-[#0d111a]/80 backdrop-blur-md border-cyan-400/30 text-cyan-300">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-400" /> Secure Terminal Gateway
+                Secure Terminal Gateway
               </span>
               <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white leading-snug">
                 Ibadan's Launchpad for Technical Founders

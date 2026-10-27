@@ -2,7 +2,8 @@ import type { Server, Socket } from 'socket.io';
 import type { User } from '@prisma/client';
 import { userFromToken } from './lib/auth.js';
 import { prisma } from './lib/prisma.js';
-import { resolveChannel, supportOwner } from './lib/channels.js';
+import { resolveChannel, supportOwner, getDmRecipientId } from './lib/channels.js';
+import { encryptMessage } from './lib/crypto.js';
 import { emitToAdmins, emitToChannel, notify, online } from './lib/realtime.js';
 
 type Ack = (res: { ok: boolean; error?: string; channel?: string }) => void;
@@ -44,15 +45,21 @@ export function setupSocket(io: Server) {
         if (!content) throw new Error('Message is empty');
 
         const message = await prisma.chatMessage.create({
-          data: { channel, content, senderId: user.id },
+          data: { channel, content: encryptMessage(content, channel), senderId: user.id },
           include: { sender: { select: { id: true, fullName: true, role: true, tier: true } } },
         });
-        emitToChannel(channel, 'chat:message', message);
+        // Emit decrypted/original plaintext to the authorized room participants
+        emitToChannel(channel, 'chat:message', { ...message, content });
 
         const owner = supportOwner(channel);
         if (owner && user.role !== 'ADMIN') emitToAdmins('support:activity', { channel });
         if (owner && user.role === 'ADMIN' && owner !== user.id) {
           await notify(owner, 'Hub Support replied', content.slice(0, 120));
+        }
+
+        const dmRecipient = getDmRecipientId(channel, user.id);
+        if (dmRecipient) {
+          await notify(dmRecipient, `New message from ${user.fullName}`, content.slice(0, 120));
         }
         ack?.({ ok: true });
       } catch (err) {

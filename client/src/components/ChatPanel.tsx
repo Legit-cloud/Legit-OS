@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Hash, Send, ShieldCheck } from 'lucide-react';
+import { Hash, Lock, MessageSquare, Send, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatTime, tierLabel } from '../lib/format';
 import { getSocket, useSocketEvent } from '../lib/socket';
@@ -15,7 +15,7 @@ interface Thread {
 }
 
 /**
- * Real-time chat bound to one channel key ("global", "support", or "support:<userId>" for admins).
+ * Real-time chat bound to one channel key ("global", "support", or "dm:<id>").
  * History comes over REST; live messages arrive over the socket and are merged into the query cache.
  */
 export function ChatPanel({ channelKey, title, subtitle }: { channelKey: string; title: string; subtitle: string }) {
@@ -65,14 +65,26 @@ export function ChatPanel({ channelKey, title, subtitle }: { channelKey: string;
     });
   };
 
+  const isEncrypted = channelKey.startsWith('dm:') || channelKey.startsWith('support');
+
   return (
     <div className="glass flex h-[calc(100vh-13rem)] min-h-[480px] flex-col overflow-hidden p-0">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
-        <span className="rounded-xl bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-400"><Hash className="h-4 w-4" /></span>
-        <div>
-          <p className="font-display font-bold">{title}</p>
-          <p className="text-xs text-slate-500">{subtitle}</p>
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="rounded-xl bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400 shrink-0">
+            {channelKey.startsWith('dm:') ? <MessageSquare className="h-4 w-4" /> : <Hash className="h-4 w-4" />}
+          </span>
+          <div className="min-w-0">
+            <p className="font-display font-bold truncate text-slate-900 dark:text-white">{title}</p>
+            <p className="text-xs text-slate-500 truncate">{subtitle}</p>
+          </div>
         </div>
+
+        {isEncrypted && (
+          <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">
+            <Lock className="h-3 w-3" /> End-to-End Encrypted
+          </span>
+        )}
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 scrollbar-thin">
