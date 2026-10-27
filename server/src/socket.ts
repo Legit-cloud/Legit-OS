@@ -5,6 +5,7 @@ import { prisma } from './lib/prisma.js';
 import { resolveChannel, supportOwner, getDmRecipientId } from './lib/channels.js';
 import { encryptMessage } from './lib/crypto.js';
 import { emitToAdmins, emitToChannel, notify, online } from './lib/realtime.js';
+import { getDmRelationship, sendDmRequest } from './lib/social.js';
 
 type Ack = (res: { ok: boolean; error?: string; channel?: string }) => void;
 
@@ -44,6 +45,17 @@ export function setupSocket(io: Server) {
         const content = typeof payload?.content === 'string' ? payload.content.trim().slice(0, 1000) : '';
         if (!content) throw new Error('Message is empty');
 
+        const dmRecipient = getDmRecipientId(channel, user.id);
+        if (dmRecipient) {
+          const rel = await getDmRelationship(user.id, dmRecipient);
+          if (!rel.canSend) {
+            throw new Error(rel.reason || 'You can only send one message until the user accepts your request.');
+          }
+          if (rel.status === 'NONE') {
+            await sendDmRequest(user.id, dmRecipient);
+          }
+        }
+
         const message = await prisma.chatMessage.create({
           data: { channel, content: encryptMessage(content, channel), senderId: user.id },
           include: { sender: { select: { id: true, fullName: true, role: true, tier: true } } },
@@ -57,7 +69,6 @@ export function setupSocket(io: Server) {
           await notify(owner, 'Hub Support replied', content.slice(0, 120));
         }
 
-        const dmRecipient = getDmRecipientId(channel, user.id);
         if (dmRecipient) {
           await notify(dmRecipient, `New message from ${user.fullName}`, content.slice(0, 120));
         }

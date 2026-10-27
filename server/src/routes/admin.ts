@@ -13,6 +13,7 @@ import { VEHICLES } from './transit.js';
 import { telemetryDb } from '../lib/telemetryDb.js';
 import { saveBroadcast, getBroadcastHistory, deleteBroadcast, type BroadcastEntry, type BroadcastType, type BroadcastSeverity, type BroadcastTarget } from '../lib/broadcasts.js';
 import { sendApprovalEmail, sendRejectionEmail, sendAdminInviteEmail } from '../lib/email.js';
+import { listUserReports, updateReportStatus } from '../lib/social.js';
 import crypto from 'node:crypto';
 
 export const adminRouter = Router();
@@ -1205,6 +1206,20 @@ adminRouter.delete('/comms/broadcast/:id', async (req, res) => {
   );
 
   res.json({ ok: true, deleted: true, removedCount: deletedNotifs.count });
+});
+
+// ─── User Reports Moderation ──────────────────────────────────────────────────
+adminRouter.get('/reports', async (_req, res) => {
+  const reports = await listUserReports();
+  res.json(reports);
+});
+
+adminRouter.patch('/reports/:id', async (req, res) => {
+  const schema = z.object({ status: z.enum(['RESOLVED', 'DISMISSED']) });
+  const { status } = schema.parse(req.body);
+  const result = await updateReportStatus(req.params.id, status);
+  await log('ADMIN', `${actor(req)} updated user report ${req.params.id} to ${status}`, req.user!.id);
+  res.json(result);
 });
 
 

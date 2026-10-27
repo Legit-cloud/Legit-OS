@@ -60,6 +60,10 @@ model User {
   rsvps         EventRsvp[]
   notifications Notification[]
   lessonProgress LessonProgress[]
+  reportedByReports      UserReport[]    @relation("ReportedBy")
+  receivedReports        UserReport[]    @relation("ReportedUser")
+  sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
 }
 
 model EmailOtp {
@@ -297,4 +301,37 @@ model AdminInvite {
 
   @@index([email])
   @@index([token])
+}
+
+model UserReport {
+  id             String   @id @default(uuid())
+  reporterId     String
+  reporter       User     @relation("ReportedBy", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId String
+  reportedUser   User     @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reason         String
+  details        String?
+  status         String   @default("PENDING") // PENDING, RESOLVED, DISMISSED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status])
+}
+
+model FriendRequest {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
 }

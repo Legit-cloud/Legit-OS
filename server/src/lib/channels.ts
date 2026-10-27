@@ -56,3 +56,7 @@ export function getDmRecipientId(channel: string, currentUserId: string): string
   if (parts.length !== 2) return null;
   return parts[0] === currentUserId ? parts[1] : parts[0];
 }
+
+export function getCanonicalDmChannel(id1: string, id2: string): string {
+  return `dm:${[id1, id2].sort().join(':')}`;
+}

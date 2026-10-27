@@ -251,7 +251,7 @@ export function NotificationBell() {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="glass absolute right-0 top-12 z-40 w-[min(360px,calc(100vw-2rem))] bg-white/95 p-2 shadow-xl dark:bg-slate-900/95"
+            className="glass fixed left-3 right-3 top-16 z-50 max-w-sm mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-12 sm:w-[360px] sm:max-w-none sm:mx-0 bg-white/95 p-2 shadow-2xl dark:bg-slate-900/95"
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-1.5">

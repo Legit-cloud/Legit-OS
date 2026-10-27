@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Check, Copy, Mail, Minus, Plus, RefreshCw, Search, ShieldCheck, ShieldOff, Trash2, UserCog, UserPlus, X } from 'lucide-react';
+import { Ban, Check, Copy, Flag, Mail, Minus, Plus, RefreshCw, Search, ShieldCheck, ShieldOff, Trash2, UserCog, UserPlus, X } from 'lucide-react';
 import { Avatar, Badge, Button, Card, Field, Loading, Modal, PageHeader, StatusBadge, cn } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { formatDate, formatDateTime, naira, tierLabel, timeAgo } from '../../lib/format';
@@ -391,7 +391,7 @@ function UserPanel({ id, onClose }: { id: string; onClose: () => void }) {
 
 export default function UserDirectory() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'members' | 'invites'>('members');
+  const [tab, setTab] = useState<'members' | 'invites' | 'reports'>('members');
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -410,6 +410,21 @@ export default function UserDirectory() {
   const { data: invitesData, isLoading: invitesLoading } = useQuery({
     queryKey: ['admin', 'invites'],
     queryFn: () => api<{ items: AdminInvite[] }>('/admin/invites'),
+  });
+
+  const { data: reportsData, isLoading: reportsLoading } = useQuery({
+    queryKey: ['admin', 'reports'],
+    queryFn: () => api<any[]>('/admin/reports'),
+  });
+
+  const updateReport = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'RESOLVED' | 'DISMISSED' }) =>
+      api(`/admin/reports/${id}`, { method: 'PATCH', body: { status } }),
+    onSuccess: () => {
+      toast.success('Report Updated', 'Report status was updated.');
+      qc.invalidateQueries({ queryKey: ['admin', 'reports'] });
+    },
+    onError: (e) => toast.error('Failed', errorMessage(e)),
   });
 
   const resendInvite = useMutation({
@@ -488,6 +503,24 @@ export default function UserDirectory() {
             {pendingCount > 0 && (
               <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                 {pendingCount}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('reports')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition',
+              tab === 'reports'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+            )}
+          >
+            <Flag className="h-3 w-3 text-rose-500" />
+            <span>User Reports</span>
+            {(reportsData?.filter((r: any) => r.status === 'PENDING').length ?? 0) > 0 && (
+              <span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                {reportsData?.filter((r: any) => r.status === 'PENDING').length}
               </span>
             )}
           </button>
@@ -665,6 +698,104 @@ export default function UserDirectory() {
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+
+      {/* Tab: User Reports Table */}
+      {tab === 'reports' && (
+        <Card variant="bento" className="overflow-x-auto p-0 sm:p-0">
+          {reportsLoading ? (
+            <Loading />
+          ) : (
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="text-xs uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Reported Member</th>
+                  <th className="px-5 py-3">Reported By</th>
+                  <th className="px-5 py-3">Reason</th>
+                  <th className="px-5 py-3">Details</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10 font-mono text-xs">
+                {(reportsData ?? []).map((rep: any) => (
+                  <tr key={rep.id} className="transition hover:bg-slate-50 dark:hover:bg-white/[0.02]">
+                    <td className="px-5 py-3 font-sans">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={rep.reportedName} size="sm" />
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">{rep.reportedName}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">{rep.reportedEmail}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 font-sans">
+                      <p className="font-medium text-slate-900 dark:text-white">{rep.reporterName}</p>
+                      <p className="text-[11px] text-slate-400 font-mono">{rep.reporterEmail}</p>
+                    </td>
+                    <td className="px-5 py-3 font-sans">
+                      <Badge tone="red">{rep.reason}</Badge>
+                    </td>
+                    <td className="px-5 py-3 font-sans text-slate-600 dark:text-slate-300 max-w-xs truncate" title={rep.details || 'No additional details'}>
+                      {rep.details || '—'}
+                    </td>
+                    <td className="px-5 py-3 text-slate-400">
+                      {timeAgo(rep.createdAt)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge tone={rep.status === 'PENDING' ? 'amber' : rep.status === 'RESOLVED' ? 'green' : 'slate'}>
+                        {rep.status}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3 text-right font-sans">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => setSelected(rep.reportedUserId)}
+                          title="View user profile"
+                        >
+                          Profile
+                        </Button>
+                        {rep.status === 'PENDING' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="success"
+                              className="px-2 py-1 text-xs"
+                              loading={updateReport.isPending}
+                              onClick={() => updateReport.mutate({ id: rep.id, status: 'RESOLVED' })}
+                            >
+                              Resolve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="px-2 py-1 text-xs text-slate-400 hover:text-slate-600"
+                              loading={updateReport.isPending}
+                              onClick={() => updateReport.mutate({ id: rep.id, status: 'DISMISSED' })}
+                            >
+                              Dismiss
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {(reportsData ?? []).length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-8 text-center text-sm font-sans text-slate-500">
+                      No user reports on file. Hub community is peaceful and clean!
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           )}

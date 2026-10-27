@@ -4,4 +4,6 @@ export const prisma = new PrismaClient() as PrismaClient & {
   emailOtp: (PrismaClient extends { emailOtp: infer T } ? T : any);
   adminInvite: (PrismaClient extends { adminInvite: infer T } ? T : any);
   lessonProgress: (PrismaClient extends { lessonProgress: infer T } ? T : any);
+  userReport: any;
+  friendRequest: any;
 };

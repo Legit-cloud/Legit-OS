@@ -7,6 +7,7 @@ import { decryptMessage } from '../lib/crypto.js';
 import { online } from '../lib/realtime.js';
 import { publicUser } from '../lib/auth.js';
 import { getActiveBroadcastsForUser, getAllBroadcastsForUser, acknowledgeBroadcast } from '../lib/broadcasts.js';
+import { createReport, getDmRelationship, listUserRequests, sendDmRequest, respondDmRequest } from '../lib/social.js';
 
 export const communityRouter = Router();
 
@@ -64,6 +65,43 @@ communityRouter.get('/network/messages', async (req, res) => {
   }));
 
   res.json({ channel, messages });
+});
+
+communityRouter.post('/network/report', async (req, res) => {
+  const schema = z.object({
+    reportedUserId: z.string().min(1, 'Target user is required'),
+    reason: z.string().min(2, 'Please provide a valid reason'),
+    details: z.string().optional(),
+  });
+  const data = schema.parse(req.body);
+  const report = await createReport(req.user!.id, data.reportedUserId, data.reason, data.details);
+  res.json({ ok: true, report });
+});
+
+communityRouter.get('/network/relationship', async (req, res) => {
+  const targetUserId = typeof req.query.targetUserId === 'string' ? req.query.targetUserId : '';
+  if (!targetUserId) throw new HttpError(400, 'targetUserId query param is required');
+  const rel = await getDmRelationship(req.user!.id, targetUserId);
+  res.json(rel);
+});
+
+communityRouter.get('/network/requests', async (req, res) => {
+  const requests = await listUserRequests(req.user!.id);
+  res.json(requests);
+});
+
+communityRouter.post('/network/requests/send', async (req, res) => {
+  const schema = z.object({ receiverId: z.string().min(1) });
+  const { receiverId } = schema.parse(req.body);
+  const result = await sendDmRequest(req.user!.id, receiverId);
+  res.json(result);
+});
+
+communityRouter.post('/network/requests/:id/respond', async (req, res) => {
+  const schema = z.object({ action: z.enum(['ACCEPT', 'REJECT']) });
+  const { action } = schema.parse(req.body);
+  const result = await respondDmRequest(req.params.id, req.user!.id, action);
+  res.json(result);
 });
 
 communityRouter.get('/notifications', async (req, res) => {

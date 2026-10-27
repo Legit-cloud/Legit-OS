@@ -565,36 +565,41 @@ export default function Infra() {
             {(by.HARDWARE ?? []).map((h) => {
               const isFull = h.availableUnits !== undefined && h.availableUnits <= 0;
               return (
-                <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/[0.02]">
-                  <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 shrink-0">
-                    <Laptop className="h-6 w-6" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-900 dark:text-white">{h.name}</p>
-                      {h.availableUnits !== undefined && (
-                        <span className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          !isFull ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                        )}>
-                          <span className={cn('h-1.5 w-1.5 rounded-full', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
-                          {!isFull ? `${h.availableUnits} of ${h.maxCapacity ?? 10} units ready` : 'All rented'}
-                        </span>
-                      )}
+                <li key={h.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/[0.02]">
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                    <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-400 shrink-0">
+                      <Laptop className="h-6 w-6" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-900 dark:text-white">{h.name}</p>
+                        {h.availableUnits !== undefined && (
+                          <span className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap shrink-0',
+                            !isFull ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                          )}>
+                            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', !isFull ? 'bg-emerald-500' : 'bg-rose-500')} />
+                            {!isFull ? `${h.availableUnits} of ${h.maxCapacity ?? 10} units ready` : 'All rented'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{h.description}</p>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{h.description}</p>
                   </div>
-                  <p className="font-mono font-bold text-slate-900 dark:text-white">
-                    {naira(h.price)}<span className="font-sans text-xs font-normal text-slate-400">/{h.unit}</span>
-                  </p>
-                  <Button
-                    size="sm"
-                    variant={isFull ? 'outline' : 'primary'}
-                    disabled={isFull}
-                    onClick={() => setSelected(h)}
-                  >
-                    {isFull ? 'Unavailable' : 'Rent device'}
-                  </Button>
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pl-[52px] sm:pl-0 pt-1 sm:pt-0">
+                    <p className="font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      {naira(h.price)}<span className="font-sans text-xs font-normal text-slate-400">/{h.unit}</span>
+                    </p>
+                    <Button
+                      size="sm"
+                      variant={isFull ? 'outline' : 'primary'}
+                      disabled={isFull}
+                      onClick={() => setSelected(h)}
+                      className="shrink-0"
+                    >
+                      {isFull ? 'Unavailable' : 'Rent device'}
+                    </Button>
+                  </div>
                 </li>
               );
             })}
