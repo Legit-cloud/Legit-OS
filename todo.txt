@@ -1,0 +1,69 @@
+================================================================================
+ROADMAP: FULLY FUNCTIONAL ACADEMY CLASSROOM & CURRICULUM MANAGEMENT
+L.E.G.I.T Innovation Hub
+================================================================================
+
+[X] PHASE 1: DATABASE SCHEMA & LESSON PROGRESS MODELING
+    [X] 1.1 Add `LessonProgress` model to `server/prisma/schema.prisma`
+            - id (UUID, primary key)
+            - userId (String, foreign key to User)
+            - courseId (String, foreign key to Course)
+            - lessonId (String, unique identifier within course modules)
+            - completed (Boolean, default true)
+            - completedAt (DateTime, default now)
+            - Compound unique index: @@unique([userId, courseId, lessonId])
+    [X] 1.2 Define rich lesson structure in Course `modulesJson`:
+            - Module: { id, week, title, description, lessons: [Lesson] }
+            - Lesson: { id, title, durationMinutes, videoUrl, summary, resources: [Resource] }
+            - Resource: { title, url, type: 'GITHUB' | 'SLIDES' | 'DOCS' | 'DOWNLOAD' }
+    [X] 1.3 Run `npx prisma db push` and `npx prisma generate`
+    [X] 1.4 Update database seeds with rich lesson content, working video links, and resources
+
+[X] PHASE 2: BACKEND API ENDPOINTS (CLASSROOM & PROGRESS)
+    [X] 2.1 Update `GET /courses/:id/classroom` in `server/src/routes/academy.ts`:
+            - Return course metadata, structured modules/lessons, and enrollment status
+            - Return user's completed lesson IDs from `LessonProgress`
+            - Calculate overall course completion percentage
+    [X] 2.2 Add `POST /courses/:id/lessons/:lessonId/toggle` in `server/src/routes/academy.ts`:
+            - Toggle lesson completion status for authenticated student
+            - Award hub points (+10 points) on first-time lesson completion
+            - Return updated completed lesson IDs and course progress stats
+    [X] 2.3 Add `PUT /admin/courses/:id/curriculum` in `server/src/routes/admin.ts`:
+            - Allow admins to edit modules, add lessons, paste video URLs, and attach resources
+            - Validate curriculum JSON structure and emit `courses:changed` socket event
+
+[X] PHASE 3: INTERACTIVE VIDEO PLAYER & LESSON VIEWER UI
+    [X] 3.1 Build versatile Video Player component in `client/src/pages/app/Classroom.tsx`:
+            - Support YouTube embeds (standard & Shorts/embed format)
+            - Support Vimeo, Loom, and direct MP4 / HLS video URLs
+            - Fallback branded hub placeholder when recording is processing
+            - Cinema mode / Theater layout toggle for distraction-free learning
+    [X] 3.2 Dynamic Lesson Selector & Navigation:
+            - Click any lesson in the module syllabus to instantly load video & materials
+            - Show visual lesson status: Completed (green check), Up Next (cyan pulse), Locked
+            - Next Lesson / Previous Lesson navigation controls with auto-advance
+
+[X] PHASE 4: LESSON MATERIALS, PROGRESS TRACKING & DISCUSSION TABS
+    [X] 4.1 Build interactive Lesson Tabs under the player:
+            - "Lesson Guide": Summary, key takeaways, and syntax/code snippets
+            - "Resources & Downloads": Clickable pills for GitHub repos, slides, and cheat sheets
+            - "Class Discussion": Question thread with hub instructors and peers
+    [X] 4.2 Real-time Progress Bar & Completion Flow:
+            - "Mark as Completed" button with instant checkmark and hub points feedback
+            - Course overall completion percentage counter (e.g. "12/18 lessons · 67%")
+            - Completion celebration when a course is 100% finished
+
+[X] PHASE 5: ADMIN CURRICULUM & LESSON MANAGER UI
+    [X] 5.1 In `client/src/pages/admin/AdminCourses.tsx`:
+            - Add "Curriculum Builder" button and modal drawer
+            - Add/edit/remove modules and weeks
+            - Add/edit lessons: Title, Video URL, duration, summary, and downloadable links
+            - Reorder lessons and save directly to backend
+
+[X] PHASE 6: TESTING, VERIFICATION & TYPECHECK
+    [X] 6.1 Test installment plan gating (half-paid unlocks Weeks 1..N/2, fully-paid unlocks all)
+    [X] 6.2 Test video playback and switching across different providers (YouTube, Vimeo, MP4)
+    [X] 6.3 Test lesson completion persistence in DB and points awarding
+    [X] 6.4 Test Admin curriculum editor live updates via WebSockets
+    [X] 6.5 Run `npm run typecheck` across client & server with 0 errors
+================================================================================
