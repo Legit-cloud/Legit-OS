@@ -20,17 +20,32 @@ const FACILITY_ICONS: Record<string, typeof Building2> = {
 
 const FACILITY_PHOTOS: Record<string, string> = {
   'Media Studio': '/media-studio-2.jpg',
-  'Private Office': 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-  'Conference Room': 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
+  'Private Office': '/private-office-1.jpg',
+  'Conference Room': '/conference-room-4.jpg',
   Classroom: '/classroom-2.jpg',
 };
 
 const FACILITY_GALLERIES: Record<string, string[]> = {
   'Media Studio': ['/media-studio-2.jpg', '/media-studio-3.jpg', '/media-studio-1.jpg'],
+  'Private Office': ['/private-office-1.jpg', '/private-office-3.jpg', '/private-office-2.jpg', '/private-office-4.jpg'],
+  'Conference Room': [
+    '/conference-room-4.jpg',
+    '/conference-room-2.jpg',
+    '/conference-room-5.jpg',
+    '/conference-room-1.jpg',
+    '/conference-room-3.jpg',
+  ],
   Classroom: ['/classroom-2.jpg', '/classroom-1.jpg', '/classroom-3.jpg'],
 };
 
-const DESK_PHOTO = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80';
+const DESK_PHOTO = '/coworkspace-3.jpg';
+const DESK_PHOTOS = [
+  '/coworkspace-3.jpg',
+  '/coworkspace-1.jpg',
+  '/coworkspace-2.jpg',
+  '/coworkspace-4.jpg',
+  '/coworkspace-5.jpg',
+];
 
 function FacilityCardMedia({
   facility,
@@ -403,10 +418,27 @@ function BookModal({ item, onClose }: { item: CatalogItem | null; onClose: () =>
   );
 }
 
-function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
+function CoWorkspace({
+  desks,
+  onOpenLightbox,
+}: {
+  desks: CatalogItem[];
+  onOpenLightbox: (index: number) => void;
+}) {
   const [mode, setMode] = useState<'hour' | 'day'>('hour');
   const [qty, setQty] = useState(2);
+  const [slideIdx, setSlideIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
   const book = useBook();
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setInterval(() => {
+      setSlideIdx((curr) => (curr + 1) % DESK_PHOTOS.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [paused]);
+
   const desk = desks.find((d) => d.unit === mode) ?? desks[0];
   if (!desk) return <Empty title="No desks available right now" />;
   const isAvailable = desk.availableUnits === undefined || desk.availableUnits > 0;
@@ -414,15 +446,81 @@ function CoWorkspace({ desks }: { desks: CatalogItem[] }) {
   return (
     <Card variant="bento" className="overflow-hidden p-0 sm:p-0">
       <div className="grid lg:grid-cols-12 gap-0">
-        <div className="relative lg:col-span-5 h-56 sm:h-64 lg:h-auto min-h-[220px] overflow-hidden">
-          <img
-            src={DESK_PHOTO}
-            alt="Ergonomic Hot Desks at L.E.G.I.T Innovation Hub"
-            className="h-full w-full object-cover object-center"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-slate-950/90" />
-          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-1.5">
+        <div
+          className="group relative lg:col-span-5 h-60 sm:h-68 lg:h-auto min-h-[240px] overflow-hidden bg-slate-900 cursor-pointer select-none"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onClick={() => onOpenLightbox(slideIdx)}
+          role="button"
+          tabIndex={0}
+          aria-label="View Co-Workspace Area photos"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenLightbox(slideIdx);
+            }
+          }}
+        >
+          {DESK_PHOTOS.map((src, i) => (
+            <img
+              key={src}
+              src={src}
+              alt={`Co-Workspace Area ${i + 1}`}
+              className={cn(
+                'absolute inset-0 h-full w-full object-cover object-center transition-all duration-700 [@media(hover:hover)]:group-hover:scale-105',
+                i === slideIdx ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'
+              )}
+              loading="lazy"
+            />
+          ))}
+
+          {/* Top-right expand pill & slide counter */}
+          <div className="absolute top-3 left-3 right-3 z-[3] flex items-center justify-between">
+            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {DESK_PHOTOS.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Go to slide ${i + 1}`}
+                  onClick={() => setSlideIdx(i)}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all',
+                    i === slideIdx ? 'w-5 bg-[#155dfd]' : 'w-1.5 bg-white/60 hover:bg-white'
+                  )}
+                />
+              ))}
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-950/75 backdrop-blur-md border border-white/15 px-2.5 py-0.5 text-[10px] font-medium text-white">
+              <Expand className="h-3 w-3" />
+              <span>{slideIdx + 1}/{DESK_PHOTOS.length} · Tap to view</span>
+            </span>
+          </div>
+
+          {/* Prev / Next arrows */}
+          <button
+            type="button"
+            aria-label="Previous photo"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSlideIdx((curr) => (curr - 1 + DESK_PHOTOS.length) % DESK_PHOTOS.length);
+            }}
+            className="tap absolute left-2.5 top-1/2 z-[3] -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/70 text-white backdrop-blur-md border border-white/15 transition hover:bg-slate-950 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next photo"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSlideIdx((curr) => (curr + 1) % DESK_PHOTOS.length);
+            }}
+            className="tap absolute right-2.5 top-1/2 z-[3] -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/70 text-white backdrop-blur-md border border-white/15 transition hover:bg-slate-950 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          <div className="absolute bottom-4 left-4 right-4 z-[3] flex flex-wrap gap-1.5 pointer-events-none">
             <span className="rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white">
               1 Gbps Fiber
             </span>
@@ -761,7 +859,10 @@ export default function Infra() {
       )}
 
       <Section id="desks" title="Co-Workspace Area" subtitle="Flexible desks with fibre, power backup and lounge access.">
-        <CoWorkspace desks={by.DESK ?? []} />
+        <CoWorkspace
+          desks={by.DESK ?? []}
+          onOpenLightbox={(index) => setLightbox({ title: 'Co-Workspace Area', photos: DESK_PHOTOS, index })}
+        />
       </Section>
 
       <Section id="facilities" title="Private Facilities" subtitle="Bookable by the hour. Paid bookings can be checked in from your Overview.">
